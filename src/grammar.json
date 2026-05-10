@@ -6399,8 +6399,17 @@
                   "type": "FIELD",
                   "name": "type",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "qualified_name"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "qualified_name"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "identifier"
+                      }
+                    ]
                   }
                 }
               ]
@@ -7769,6 +7778,27 @@
           },
           "named": false,
           "value": "GET"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "("
+                },
+                {
+                  "type": "STRING",
+                  "value": ")"
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -19073,8 +19103,25 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "__for_record_phrase_section"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "__for_record_phrase_section"
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "__for_variables"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -37373,6 +37420,15 @@
           "name": "procedure_name"
         },
         {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "__run_procedure_path"
+          },
+          "named": true,
+          "value": "procedure_name"
+        },
+        {
           "type": "SYMBOL",
           "name": "identifier"
         },
@@ -37381,6 +37437,13 @@
           "name": "qualified_name"
         }
       ]
+    },
+    "__run_procedure_path": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[A-Za-z_][A-Za-z0-9_-]*(?:[/\\\\][A-Za-z_][A-Za-z0-9_-]*)+"
+      }
     },
     "__run_library_member": {
       "type": "SEQ",

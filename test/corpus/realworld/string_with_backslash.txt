@@ -1,0 +1,39 @@
+================================================================================
+String literals containing backslash (ABL escape is ~, not \)
+================================================================================
+
+ASSIGN
+    x = "/"
+    x = REPLACE(x,"\","_")
+    x = REPLACE(x,"[","_").
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (assign_statement
+    (assign_phrase
+      (assign_pair
+        left: (identifier)
+        right: (string_literal))
+      (assign_pair
+        left: (identifier)
+        right: (function_call
+          function: (identifier)
+          (arguments
+            (argument
+              name: (identifier))
+            (argument
+              name: (string_literal))
+            (argument
+              name: (string_literal)))))
+      (assign_pair
+        left: (identifier)
+        right: (function_call
+          function: (identifier)
+          (arguments
+            (argument
+              name: (identifier))
+            (argument
+              name: (string_literal))
+            (argument
+              name: (string_literal))))))))

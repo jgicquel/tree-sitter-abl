@@ -139,9 +139,9 @@ function preprocessABL(src, opts = {}) {
     ampersandLines: true,
     proparseAnnotation: true,
     argRefBare: true,
+    singletonInclude: true,
   };
-  const enabled = (name) =>
-    opts[name] !== undefined ? opts[name] : enabledByDefault[name];
+  const enabled = (name) => (opts[name] !== undefined ? opts[name] : enabledByDefault[name]);
 
   let r = src;
   if (enabled("nestedComments")) r = normalizeNestedComments(r);
@@ -159,6 +159,24 @@ function preprocessABL(src, opts = {}) {
   }
   if (enabled("namedDefineWithArgs"))
     r = r.replace(/\{&([A-Za-z_][A-Za-z0-9_\-]*)\s+[^}]+\}/g, "__PP_$1");
+  if (enabled("singletonInclude")) {
+    // {<...>Singleton.i ClassName [IMPLEMENTS Iface[, Iface2…]]} expands to
+    // a class header opening a class block. Replace it with a literal
+    // `CLASS <ClassName> [IMPLEMENTS Iface]:` and append `END CLASS.` at
+    // the end so the rest of the file parses inside a class scope.
+    let injectedHeader = false;
+    r = r.replace(
+      /\{[^}]*Singleton\.i\s+([A-Za-z_][\w.\-]*)(\s+IMPLEMENTS\s+[^}]+)?\}/g,
+      (_m, className, implementsClause) => {
+        injectedHeader = true;
+        const impl = implementsClause ? implementsClause.replace(/\s+/g, " ").trimEnd() : "";
+        return `CLASS ${className}${impl}:`;
+      },
+    );
+    if (injectedHeader && !/\bEND\s+CLASS\b/i.test(r)) {
+      r = r + "\nEND CLASS.\n";
+    }
+  }
   return r.replace(/\s+$/, "");
 }
 

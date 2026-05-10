@@ -148,7 +148,12 @@ module.exports = ({ kw }) => ({
     ),
 
   __class_property_get_phrase: ($) =>
-    seq(optional($.__class_property_access_modifier), kw("GET"), $.__class_property_accessor_tail),
+    seq(
+      optional($.__class_property_access_modifier),
+      kw("GET"),
+      optional(seq("(", ")")),
+      $.__class_property_accessor_tail,
+    ),
 
   __class_property_set_phrase: ($) =>
     seq(

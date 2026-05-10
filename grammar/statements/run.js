@@ -39,9 +39,13 @@ module.exports = ({ kw }) => ({
       alias($._value_expression, $.value_expression),
       alias($.__run_library_member, $.library_member),
       $.procedure_name,
+      alias($.__run_procedure_path, $.procedure_name),
       $.identifier,
       $.qualified_name,
     ),
+  // Path-style procedure name without extension, e.g.
+  // RUN Erp/Model/Vente/ErpTrtSaisieLignePieceClient PERSISTENT SET h.
+  __run_procedure_path: ($) => token(/[A-Za-z_][A-Za-z0-9_-]*(?:[/\\][A-Za-z_][A-Za-z0-9_-]*)+/),
   __run_library_member: ($) =>
     seq(
       field("library", $.procedure_name),

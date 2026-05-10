@@ -20,7 +20,8 @@ module.exports = ({ kw }) => ({
       optional($.__for_with_stream_io_phrase),
       $.body,
     ),
-  __for_record_or_variables: ($) => choice($.__for_record_phrase_section, $.__for_variables),
+  __for_record_or_variables: ($) =>
+    choice(seq($.__for_record_phrase_section, optional($.__for_variables)), $.__for_variables),
   __for_record_phrase_section: ($) =>
     seq($.__for_record_phrases, repeat($.__for_break_or_sort_phrase)),
 
