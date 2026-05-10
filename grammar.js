@@ -121,6 +121,10 @@ module.exports = grammar({
     // ON TAB TAB. vs ON TAB OF widget: both start with a UI event name token.
     // Requires runtime dispatch since disambiguation needs 2-token lookahead.
     [$.__on_key_label, $.__on_ui_event],
+    // ASSIGN <record>. vs ASSIGN <target> += <expr> - both start with an
+    // identifier; needs 2-token lookahead (next token is operator or EXCEPT
+    // or terminator) to pick the right body shape.
+    [$.__assign_statement_phrase_body, $.__assign_record_body],
   ],
   inline: ($) => [
     $.__find_record_name,
@@ -307,7 +311,14 @@ module.exports = grammar({
         choice($._identifier_or_qualified_name, $.array_access, $.object_access),
       _identifier_or_access_or_call: ($) => choice($._identifier_or_access, $.function_call),
       macro_concatenated_name: ($) =>
-        token(/[_\p{L}][\p{L}\p{N}_\-&]*(\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\})+/i),
+        token(
+          // Concatenation of identifier characters and {…} macro segments,
+          // with at least one of each. This matches IDENT{&MACRO},
+          // {&MACRO}IDENT, {&MACRO}IDENT{&MACRO2}, etc., but explicitly
+          // does NOT match a bare identifier (falls through to $.identifier)
+          // nor a bare {&MACRO} (falls through to $.preprocessor_name).
+          /(?:[_\p{L}][\p{L}\p{N}_\-&]*\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}[\p{L}\p{N}_\-&]+)(?:[\p{L}\p{N}_\-&]|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\})*/i,
+        ),
 
       _widgets: ($) => prec.right(alias(choice(...WIDGETS, kw("FRAME")), $.identifier)),
       _events: ($) =>
@@ -413,7 +424,10 @@ module.exports = grammar({
           $._object_access_handle,
           $._object_access_plain,
           seq(
-            field("left", choice($.function_call, $.parenthesized_expression, $.new_expression)),
+            field(
+              "left",
+              choice($.function_call, $.parenthesized_expression, $.new_expression, $.array_access),
+            ),
             $._object_access_tail,
           ),
         ),
@@ -507,10 +521,10 @@ module.exports = grammar({
 
       // Identifiers
       // BE CAREFUL MODIFYING HERE, IDENTIFIER ORDER FOR SOME REASON MATTERS!
-      // Allowed punctuation in identifiers: _ - & # %
-      // The % is supported for legacy naming conventions ("P%RowId" style)
-      // seen in real-world ABL codebases.
-      identifier: ($) => token(/[_\p{L}][\p{L}\p{N}_\-&#%]*/i),
+      // Allowed punctuation in identifiers: _ - & # % $
+      // % and $ are supported for legacy naming conventions ("P%RowId",
+      // "p$typ_rem") seen in real-world ABL codebases.
+      identifier: ($) => token(/[_\p{L}][\p{L}\p{N}_\-&#%$]*/i),
       system_handle_identifier: ($) =>
         alias(
           token(prec(1, new RegExp(`(${SYSTEM_HANDLE_WORDS.map(escape_regex).join("|")})`, "i"))),
@@ -518,7 +532,7 @@ module.exports = grammar({
         ),
       _label_identifier: ($) => $.identifier,
       _label: ($) => prec.right(1, seq(field("label", $.identifier), alias($._colon, ":"))),
-      _identifier_immediate: ($) => token.immediate(/[_\p{L}][\p{L}\p{N}_\-%]*/i),
+      _identifier_immediate: ($) => token.immediate(/[_\p{L}][\p{L}\p{N}_\-%$]*/i),
       _alias_name: ($) => choice($.identifier, $.string_literal, $._value_expression),
       _os_filename: ($) => choice($.string_literal, $._identifier_or_access_or_call),
       parenthesized_identifier: ($) => seq("(", $.identifier, ")"),

@@ -70,9 +70,19 @@ module.exports = ({ kw }) => ({
   __function_parameter: ($) =>
     seq(
       optional(field("direction", choice(kw("INPUT"), kw("OUTPUT"), kw("INPUT-OUTPUT")))),
-      field("name", $.identifier),
-      $.__function_variable_type_phrase,
-      optional(alias(kw("NO-UNDO"), $.no_undo)),
+      choice(
+        seq(
+          field("name", $.identifier),
+          $.__function_variable_type_phrase,
+          optional(alias(kw("NO-UNDO"), $.no_undo)),
+        ),
+        seq(
+          kw("BUFFER"),
+          field("buffer", $.identifier),
+          kw("FOR"),
+          field("table", $._identifier_or_qualified_name),
+        ),
+      ),
     ),
 
   __function_variable_type_phrase: ($) => seq($._as_like, optional($.__function_extent_phrase)),

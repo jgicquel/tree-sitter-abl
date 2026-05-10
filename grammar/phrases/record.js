@@ -49,5 +49,6 @@ module.exports = ({ kw }) => ({
   __record_except_list: ($) => seq(kw("EXCEPT"), "(", optional($.__record_field_names), ")"),
   __record_field_names: ($) =>
     seq($.__record_field_name, repeat(seq(optional(","), $.__record_field_name))),
-  __record_field_name: ($) => $._identifier_or_qualified_name,
+  __record_field_name: ($) =>
+    seq($._identifier_or_qualified_name, optional(seq("[", field("index", $._expression), "]"))),
 });
