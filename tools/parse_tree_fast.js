@@ -34,6 +34,7 @@ function parseArgs(argv) {
     quiet: false,
     json: false,
     threads: 1,
+    progress: 100, // stderr tick every N files completed; 0 to disable
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -42,6 +43,7 @@ function parseArgs(argv) {
     else if (a === "--json") args.json = true;
     else if (a === "--ext") args.ext = argv[++i].split(",").map((s) => s.trim().toLowerCase());
     else if (a === "--top") args.top = parseInt(argv[++i], 10);
+    else if (a === "--progress") args.progress = parseInt(argv[++i], 10);
     else if (a === "--threads") {
       const v = argv[++i];
       args.threads = v === "auto" ? os.cpus().length : parseInt(v, 10);
@@ -176,9 +178,27 @@ async function main() {
   let pass = 0;
   let fail = 0;
   let err = 0;
+  let done = 0;
   const groups = new Map();
+  const total = files.length;
+
+  const tickProgress = () => {
+    if (!args.progress || args.progress <= 0) return;
+    if (done % args.progress !== 0 && done !== total) return;
+    const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(1);
+    const rate = done > 0 ? (done / Number(elapsedSec || 1)).toFixed(0) : "0";
+    const etaSec =
+      done > 0 && done < total
+        ? (((Date.now() - startMs) / done) * (total - done) / 1000).toFixed(1)
+        : "0";
+    process.stderr.write(
+      `\r  [${done}/${total}] ${pass} pass / ${fail} fail / ${err} err  —  ${elapsedSec}s elapsed, ~${rate} files/s, ETA ~${etaSec}s   `,
+    );
+    if (done === total) process.stderr.write("\n");
+  };
 
   const accumulate = (r) => {
+    done++;
     results.push(r);
     if (r.status === "pass") {
       pass++;
@@ -204,6 +224,7 @@ async function main() {
       err++;
       if (!args.json && !args.quiet) console.log(`[${r.status.toUpperCase()}] ${r.path}: ${r.message}`);
     }
+    tickProgress();
   };
 
   if (args.threads === 1) {
