@@ -51920,6 +51920,10 @@
         "required": false,
         "types": [
           {
+            "type": "array_access",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },

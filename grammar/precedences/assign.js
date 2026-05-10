@@ -1,14 +1,14 @@
 // References: ASSIGN phrase.
 module.exports = ($) => [
   // Purpose: treat FRAME as identifier in ASSIGN, not widget keyword.
-  // Example: ASSIGN FRAME = WFRAME[...]:HANDLE.
-  // The widget object_access form (`FRAME someName:HANDLE`) is much rarer
-  // as an assignable target than `FRAME = expr`, so prefer the keyword
-  // identifier path. The widget path is still reachable when nothing
-  // immediately follows FRAME that fits an assign continuation.
+  // Example: ASSIGN FRAME = FRAME foo:HANDLE.
   [$.__assign_keyword_identifier, $._widgets],
-  [$.__assign_keyword_identifier, $.object_access],
-  [$.__assign_keyword_identifier, $._object_access_widget],
+  // Purpose: if a widget keyword is followed by an identifier, prefer object access.
+  // Example: ASSIGN FRAME foo:HANDLE = ... .
+  [$.object_access, $.__assign_keyword_identifier],
+  // Purpose: prefer widget-prefixed object access over keyword identifier.
+  // Example: ASSIGN FRAME foo:HANDLE = ... .
+  [$._object_access_widget, $.__assign_keyword_identifier],
   // Purpose: prefer record form in ASSIGN when EXCEPT is present.
   // Example: ASSIGN Customer EXCEPT Name.
   [$.__assign_record_body, $._assignable],

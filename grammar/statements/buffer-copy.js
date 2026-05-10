@@ -33,7 +33,7 @@ module.exports = ({ kw }) => ({
   __buffer_copy_assign_pair: ($) =>
     seq(
       field("left", $._assignable),
-      field("operator", $.assignment_operator),
+      choice("=", "+=", "-=", "*=", "/="),
       field("right", $._expression),
       optional(seq(kw("WHEN"), field("when", $._expression))),
     ),

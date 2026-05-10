@@ -125,6 +125,10 @@ module.exports = grammar({
     // identifier; needs 2-token lookahead (next token is operator or EXCEPT
     // or terminator) to pick the right body shape.
     [$.__assign_statement_phrase_body, $.__assign_record_body],
+    // BROWSE ENABLE x[idx] could be either an enable_field with a subscript
+    // or an array_access expression. The disambiguation needs lookahead
+    // past the bracketed expression — GLR.
+    [$.__browse_enable_field, $._array_target],
   ],
   inline: ($) => [
     $.__find_record_name,
