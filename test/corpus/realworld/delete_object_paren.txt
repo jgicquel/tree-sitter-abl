@@ -1,0 +1,16 @@
+================================================================================
+DELETE OBJECT with parenthesized expression
+================================================================================
+
+DELETE OBJECT(vObj).
+DELETE OBJECT vHandle NO-ERROR.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (delete_object_statement
+    name: (parenthesized_expression
+      (identifier)))
+  (delete_object_statement
+    name: (identifier)
+    (no_error)))

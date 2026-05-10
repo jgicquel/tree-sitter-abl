@@ -6,7 +6,7 @@ module.exports = ({ kw }) => ({
       kw("FOR"),
       $.__for_record_or_variables,
       optional(alias($.__for_while_phrase, $.while_phrase)),
-      optional(alias(kw("TRANSACTION"), $.transaction)),
+      optional(alias(kw("TRANSACTION", { offset: 5 }), $.transaction)),
       repeat(
         choice(
           $.stop_after_phrase,
@@ -20,7 +20,8 @@ module.exports = ({ kw }) => ({
       optional($.__for_with_stream_io_phrase),
       $.body,
     ),
-  __for_record_or_variables: ($) => choice($.__for_record_phrase_section, $.__for_variables),
+  __for_record_or_variables: ($) =>
+    choice(seq($.__for_record_phrase_section, optional($.__for_variables)), $.__for_variables),
   __for_record_phrase_section: ($) =>
     seq($.__for_record_phrases, repeat($.__for_break_or_sort_phrase)),
 

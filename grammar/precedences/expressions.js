@@ -28,6 +28,9 @@ module.exports = ($) => [
   // Purpose: prefer object access over plain identifier/qualified name when ':' follows.
   // Example: MENU:ITEM.
   [$.object_access, $.qualified_name, $.identifier],
+  // Purpose: when an array access is followed by `:`, prefer object_access
+  // wrapping the array_access (e.g. `WFRAME[i]:HANDLE`).
+  [$.object_access, $.array_access],
   // Purpose: prefer explicit handle accessor form for TEMP-TABLE/BUFFER prefixes.
   // Example: BUFFER Customer:HANDLE.
   [$._object_access_handle, $._object_access_plain],

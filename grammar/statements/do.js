@@ -11,7 +11,10 @@ module.exports = ({ kw }) => ({
     ),
   __do_body_tail: ($) =>
     choice(
-      seq(alias(kw("TRANSACTION"), $.transaction), optional($.__do_body_after_first_transaction)),
+      seq(
+        alias(kw("TRANSACTION", { offset: 5 }), $.transaction),
+        optional($.__do_body_after_first_transaction),
+      ),
       seq($.__do_condition_or_loop_phrase, optional($.__do_body_after_condition_or_loop)),
       $.__do_block_tail,
     ),
@@ -22,7 +25,10 @@ module.exports = ({ kw }) => ({
     ),
   __do_body_after_condition_or_loop: ($) =>
     choice(
-      seq(alias(kw("TRANSACTION"), $.transaction), optional($.__do_body_after_second_transaction)),
+      seq(
+        alias(kw("TRANSACTION", { offset: 5 }), $.transaction),
+        optional($.__do_body_after_second_transaction),
+      ),
       $.__do_block_tail,
     ),
   __do_body_after_second_transaction: ($) => $.__do_block_tail,
@@ -39,6 +45,10 @@ module.exports = ({ kw }) => ({
 
   body: ($) =>
     prec.right(seq(choice(alias($._colon, ":"), $._terminator_dot), repeat($._statement))),
-  __do_condition_or_loop_phrase: ($) => choice($.__do_while_phrase, $._loop_phrase),
+  __do_condition_or_loop_phrase: ($) =>
+    choice(
+      $.__do_while_phrase,
+      seq($._loop_phrase, optional(alias($.__do_while_phrase, $.while_phrase))),
+    ),
   __do_while_phrase: ($) => seq(kw("WHILE"), field("condition", $._expression)),
 });

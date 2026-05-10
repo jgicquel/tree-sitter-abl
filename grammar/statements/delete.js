@@ -24,5 +24,5 @@ module.exports = ({ kw }) => ({
       $._no_error_terminator,
     ),
 
-  __delete_object_body: ($) => seq(field("name", $.identifier)),
+  __delete_object_body: ($) => field("name", $._expression),
 });

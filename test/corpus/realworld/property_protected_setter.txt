@@ -1,0 +1,35 @@
+================================================================================
+PROPERTY with PROTECTED SET accessor and INPUT parameter
+================================================================================
+
+CLASS Foo:
+    DEFINE PUBLIC PROPERTY pName AS CHARACTER NO-UNDO
+        GET:
+            RETURN pName_.
+        END GET.
+        PROTECTED SET(INPUT pArgs AS CHARACTER) :
+            pName_ = pArgs.
+        END SET.
+END CLASS.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (class_definition
+    name: (identifier)
+    (property_definition
+      (access_modifier)
+      name: (identifier)
+      type: (identifier)
+      (no_undo)
+      (return_statement
+        value: (identifier))
+      (access_modifier)
+      (property_set_parameter_list
+        (property_set_parameter
+          name: (identifier)
+          type: (identifier)))
+      (assignment_statement
+        left: (identifier)
+        operator: (assignment_operator)
+        right: (identifier)))))

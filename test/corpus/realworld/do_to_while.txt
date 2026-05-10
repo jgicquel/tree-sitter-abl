@@ -1,0 +1,26 @@
+================================================================================
+DO loop with TO and WHILE constraint
+================================================================================
+
+DO i = 1 TO 5 WHILE pParam.fields[i] <> "":
+    DISPLAY i.
+END.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (do_statement
+    variable: (identifier)
+    start: (number_literal)
+    end: (number_literal)
+    (while_phrase
+      condition: (binary_expression
+        (array_access
+          array: (qualified_name
+            left: (identifier)
+            right: (identifier))
+          index: (identifier))
+        (string_literal)))
+    (body
+      (display_statement
+        record: (identifier)))))

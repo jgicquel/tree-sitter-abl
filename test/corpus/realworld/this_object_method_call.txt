@@ -1,0 +1,43 @@
+================================================================================
+THIS-OBJECT method call with BUFFER arguments
+================================================================================
+
+THIS-OBJECT:DoSomething(BUFFER pBuf, BUFFER pOther).
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (expression_statement
+    (function_call
+      function: (object_access
+        left: (identifier)
+        right: (identifier))
+      (arguments
+        (argument
+          name: (identifier))
+        (argument
+          name: (identifier))))))
+
+================================================================================
+THIS-OBJECT chained method call
+================================================================================
+
+THIS-OBJECT:getInner():DoSomething(BUFFER pBuf, BUFFER pOther).
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (expression_statement
+    (function_call
+      function: (object_access
+        left: (function_call
+          function: (object_access
+            left: (identifier)
+            right: (identifier))
+          (arguments))
+        right: (identifier))
+      (arguments
+        (argument
+          name: (identifier))
+        (argument
+          name: (identifier))))))

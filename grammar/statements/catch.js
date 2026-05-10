@@ -4,7 +4,9 @@ module.exports = ({ kw }) => ({
   __catch_body: ($) =>
     seq(
       field("name", $.identifier),
-      optional(seq(kw("AS"), optional(kw("CLASS")), field("type", $.qualified_name))),
+      optional(
+        seq(kw("AS"), optional(kw("CLASS")), field("type", choice($.qualified_name, $.identifier))),
+      ),
       $.body,
       kw("END"),
       optional(kw("CATCH")),

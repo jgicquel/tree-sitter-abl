@@ -4,7 +4,6 @@ Cargo.lock
 
 # Node artifacts
 build/
-prebuilds/
 node_modules/
 package-lock.json
 
@@ -60,3 +59,9 @@ prompts
 abl.hash
 .codex
 ambient
+
+# Local realworld harness config (machine-specific paths)
+tools/realworld_files.json
+
+# Local agent config
+.claude/

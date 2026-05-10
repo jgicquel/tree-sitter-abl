@@ -36,6 +36,8 @@
     "test": "bun run tools/generate.js && bun run tools/test.js",
     "test:queries": "tree-sitter test",
     "test:update": "bun run tools/generate.js && bun run tools/test.js",
+    "test:realworld": "node tools/realworld_curated.js",
+    "test:full": "bun run tools/generate.js && bun run tools/minify.js && bun run tools/test.js && node tools/realworld_curated.js",
     "generate:full": "tree-sitter generate",
     "generate": "bun run tools/generate.js",
     "check": "bun run tools/generate.js",
@@ -59,11 +61,11 @@
     "nodemon": "^3.1.14",
     "oxfmt": "^0.43.0",
     "prebuildify": "^6.0.1",
-    "tree-sitter": "^0.22.4",
+    "tree-sitter": "^0.25.0",
     "tree-sitter-cli": "^0.26.8"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.22.4"
+    "tree-sitter": "^0.25.0"
   },
   "peerDependenciesMeta": {
     "tree-sitter": {

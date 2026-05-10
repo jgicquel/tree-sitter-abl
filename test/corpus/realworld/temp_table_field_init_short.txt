@@ -1,0 +1,23 @@
+================================================================================
+TEMP-TABLE FIELD with INIT short keyword
+================================================================================
+
+DEFINE PROTECTED TEMP-TABLE ttSample NO-UNDO
+    FIELD flagA AS LOGICAL   INIT NO
+    FIELD flagB AS CHARACTER INIT NO.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (temp_table_definition
+    (access_modifier)
+    name: (identifier)
+    (no_undo)
+    (temp_table_field
+      name: (identifier)
+      type: (identifier)
+      initial: (boolean_literal))
+    (temp_table_field
+      name: (identifier)
+      type: (identifier)
+      initial: (boolean_literal))))
