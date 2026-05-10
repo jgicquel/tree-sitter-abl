@@ -1,23 +1,26 @@
 // In-process bulk parser. Same interface as tools/parse_tree.js but uses
 // the native tree-sitter binding directly instead of spawning the CLI per
-// file — typically 10–50× faster on a large workspace.
+// file — typically 10–50× faster on a large workspace. Add --threads N
+// to fan out across worker threads (default 1; pass --threads auto for
+// os.cpus().length).
 //
 // Requires the native binding (build/Release/tree_sitter_abl_binding.node)
-// to be present. Build with `npx node-gyp rebuild`. On Linux/WSL this just
-// works; on Windows it needs MSVC tweaks because the minified parser.c has
-// a single ~5MB line that blows the default compiler heap (use parse_tree.js
-// instead in that case).
+// to be present. Build with `npx node-gyp rebuild`. On Linux / WSL this
+// just works; on Windows the minified parser.c has one ~5 MB-long line
+// that blows MSVC's compiler heap (C1060), so build there is currently
+// broken — use parse_tree.js (CLI-spawn) on Windows or develop in WSL.
 //
 // Usage:
 //   node tools/parse_tree_fast.js <path>
-//   node tools/parse_tree_fast.js <path> --no-preprocess
-//   node tools/parse_tree_fast.js <path> --ext .p,.cls,.i
-//   node tools/parse_tree_fast.js <path> --top 30
-//   node tools/parse_tree_fast.js <path> --quiet
+//   node tools/parse_tree_fast.js <path> --threads auto
+//   node tools/parse_tree_fast.js <path> --threads 8 --no-preprocess
+//   node tools/parse_tree_fast.js <path> --ext .p,.cls,.i --top 30 --quiet
 //   node tools/parse_tree_fast.js <path> --json
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
+const { Worker, isMainThread, parentPort, workerData } = require("node:worker_threads");
 const Parser = require("tree-sitter");
 const Language = require("../bindings/node");
 const { preprocessABL } = require("./preprocess_abl");
@@ -30,6 +33,7 @@ function parseArgs(argv) {
     top: 20,
     quiet: false,
     json: false,
+    threads: 1,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -38,14 +42,18 @@ function parseArgs(argv) {
     else if (a === "--json") args.json = true;
     else if (a === "--ext") args.ext = argv[++i].split(",").map((s) => s.trim().toLowerCase());
     else if (a === "--top") args.top = parseInt(argv[++i], 10);
-    else if (!args.path) args.path = a;
+    else if (a === "--threads") {
+      const v = argv[++i];
+      args.threads = v === "auto" ? os.cpus().length : parseInt(v, 10);
+    } else if (!args.path) args.path = a;
   }
   if (!args.path) {
     console.error(
-      "Usage: node tools/parse_tree_fast.js <path> [--no-preprocess] [--ext ...] [--top N] [--quiet] [--json]",
+      "Usage: node tools/parse_tree_fast.js <path> [--threads N|auto] [--no-preprocess] [--ext ...] [--top N] [--quiet] [--json]",
     );
     process.exit(1);
   }
+  if (args.threads < 1) args.threads = 1;
   return args;
 }
 
@@ -67,31 +75,23 @@ function summarizeLine(s) {
   return s.replace(/\s+/g, " ").trim().slice(0, 100);
 }
 
-// Walk the tree iteratively, collecting ERROR / MISSING leaves. The first
-// ERROR is dropped if it spans ~the whole file (root recovery wrapper).
+// Visit ERROR / MISSING leaves iteratively. The first ERROR is skipped if it
+// spans ~the whole file (root recovery wrapper).
 function findInnerErrors(rootNode, source) {
-  const lineCount = source.split("\n").length;
   const lines = source.split("\n");
+  const lineCount = lines.length;
   const found = [];
   let firstSkippable = true;
-
   const stack = [rootNode];
   while (stack.length > 0) {
     const node = stack.pop();
     if (!node) continue;
-
     const isError = node.type === "ERROR";
     const isMissing = node.isMissing;
-
     if (isError || isMissing) {
       const startRow = node.startPosition.row;
       const endRow = node.endPosition.row;
-      if (
-        firstSkippable &&
-        isError &&
-        startRow === 0 &&
-        endRow >= lineCount - 2
-      ) {
+      if (firstSkippable && isError && startRow === 0 && endRow >= lineCount - 2) {
         firstSkippable = false;
       } else {
         firstSkippable = false;
@@ -101,19 +101,60 @@ function findInnerErrors(rootNode, source) {
           endLine: endRow + 1,
           source: summarizeLine(lines[startRow] || ""),
         });
-        continue; // don't descend into ERROR — too noisy
+        continue;
       }
     }
-    // Push children in reverse so we visit in document order
     for (let i = node.childCount - 1; i >= 0; i--) stack.push(node.child(i));
   }
   return found;
 }
 
-function main() {
-  const args = parseArgs(process.argv);
+function parseOne(parser, filePath, preprocess) {
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "latin1");
+  } catch (e) {
+    return { path: filePath, status: "read-err", message: e.message };
+  }
+  const source = preprocess ? preprocessABL(raw) : raw;
+  const lineCount = source.split("\n").length;
+  let tree;
+  try {
+    tree = parser.parse(source);
+  } catch (e) {
+    return { path: filePath, status: "parse-err", message: e.message, lines: lineCount };
+  }
+  const innerErrors = findInnerErrors(tree.rootNode, source);
+  if (innerErrors.length === 0) {
+    return { path: filePath, status: "pass", lines: lineCount };
+  }
+  return {
+    path: filePath,
+    status: "fail",
+    errors: innerErrors.length,
+    samples: innerErrors,
+    lines: lineCount,
+  };
+}
+
+// ----- Worker entry -----
+if (!isMainThread) {
   const parser = new Parser();
   parser.setLanguage(Language);
+  parentPort.on("message", (msg) => {
+    if (msg === "exit") {
+      parentPort.close();
+      return;
+    }
+    const r = parseOne(parser, msg.filePath, msg.preprocess);
+    parentPort.postMessage(r);
+  });
+  return;
+}
+
+// ----- Main thread -----
+async function main() {
+  const args = parseArgs(process.argv);
 
   const stat = fs.statSync(args.path);
   const files = [];
@@ -125,69 +166,84 @@ function main() {
   }
 
   if (!args.json) {
-    console.log(
-      `Scanning ${files.length} files (preprocessor: ${args.preprocess ? "ON" : "OFF"}) — fast mode…`,
-    );
+    const mode = args.threads > 1 ? `fast mode, ${args.threads} workers` : "fast mode, single-thread";
+    console.log(`Scanning ${files.length} files (preprocessor: ${args.preprocess ? "ON" : "OFF"}) — ${mode}…`);
     console.log("");
   }
 
+  const startMs = Date.now();
+  const results = [];
   let pass = 0;
   let fail = 0;
   let err = 0;
-  const results = [];
   const groups = new Map();
 
-  const startMs = Date.now();
-  for (const filePath of files) {
-    let raw;
-    try {
-      raw = fs.readFileSync(filePath, "latin1");
-    } catch (e) {
-      err++;
-      results.push({ path: filePath, status: "read-err", message: e.message });
-      continue;
-    }
-    const source = args.preprocess ? preprocessABL(raw) : raw;
-    const lineCount = source.split("\n").length;
-
-    let tree;
-    try {
-      tree = parser.parse(source);
-    } catch (e) {
-      err++;
-      results.push({ path: filePath, status: "parse-err", message: e.message });
-      if (!args.json && !args.quiet) console.log(`[PARSE-ERR] ${filePath}`);
-      continue;
-    }
-
-    const innerErrors = findInnerErrors(tree.rootNode, source);
-    const real = innerErrors.length;
-
-    for (const e of innerErrors) {
-      const key = e.source || "<empty>";
-      if (!groups.has(key)) groups.set(key, { count: 0, files: new Set(), examples: [] });
-      const g = groups.get(key);
-      g.count++;
-      g.files.add(filePath);
-      if (g.examples.length < 3)
-        g.examples.push({ file: path.basename(filePath), line: e.startLine });
-    }
-
-    if (real === 0) {
+  const accumulate = (r) => {
+    results.push(r);
+    if (r.status === "pass") {
       pass++;
-      results.push({ path: filePath, status: "pass", lines: lineCount });
-      if (!args.json && !args.quiet) console.log(`[PASS] ${filePath}`);
-    } else {
+      if (!args.json && !args.quiet) console.log(`[PASS] ${r.path}`);
+    } else if (r.status === "fail") {
       fail++;
-      results.push({ path: filePath, status: "fail", errors: real, lines: lineCount });
+      for (const e of r.samples) {
+        const key = e.source || "<empty>";
+        if (!groups.has(key)) groups.set(key, { count: 0, files: new Set(), examples: [] });
+        const g = groups.get(key);
+        g.count++;
+        g.files.add(r.path);
+        if (g.examples.length < 3)
+          g.examples.push({ file: path.basename(r.path), line: e.startLine });
+      }
       if (!args.json && !args.quiet) {
-        console.log(`[FAIL ${real} err] ${filePath}`);
-        for (const s of innerErrors.slice(0, 3)) {
+        console.log(`[FAIL ${r.errors} err] ${r.path}`);
+        for (const s of r.samples.slice(0, 3)) {
           console.log(`        L${s.startLine}: ${s.source}`);
         }
       }
+    } else {
+      err++;
+      if (!args.json && !args.quiet) console.log(`[${r.status.toUpperCase()}] ${r.path}: ${r.message}`);
     }
+  };
+
+  if (args.threads === 1) {
+    // In-process loop, no worker overhead.
+    const parser = new Parser();
+    parser.setLanguage(Language);
+    for (const filePath of files) {
+      accumulate(parseOne(parser, filePath, args.preprocess));
+    }
+  } else {
+    // Worker pool. Distribute via shared index counter.
+    let nextIdx = 0;
+    let pendingWorkers = 0;
+    await new Promise((resolve) => {
+      const workers = [];
+      const tryDispatch = (w) => {
+        if (nextIdx >= files.length) {
+          w.postMessage("exit");
+          return false;
+        }
+        w.postMessage({ filePath: files[nextIdx++], preprocess: args.preprocess });
+        return true;
+      };
+      for (let i = 0; i < Math.min(args.threads, files.length); i++) {
+        const w = new Worker(__filename, { workerData: {} });
+        pendingWorkers++;
+        w.on("message", (r) => {
+          accumulate(r);
+          tryDispatch(w);
+        });
+        w.on("exit", () => {
+          pendingWorkers--;
+          if (pendingWorkers === 0) resolve();
+        });
+        workers.push(w);
+        tryDispatch(w);
+      }
+    });
   }
+
   const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(2);
 
   const sortedGroups = [...groups.entries()]
@@ -203,7 +259,7 @@ function main() {
     console.log(
       JSON.stringify(
         {
-          summary: { total: files.length, pass, fail, err, elapsedSec },
+          summary: { total: files.length, pass, fail, err, elapsedSec, threads: args.threads },
           results,
           topGroups: sortedGroups.slice(0, args.top),
         },
@@ -217,7 +273,7 @@ function main() {
   console.log("");
   console.log("================================================================");
   console.log(
-    `  SUMMARY: ${pass} pass / ${fail} fail / ${err} err  (total ${files.length}, ${elapsedSec}s)`,
+    `  SUMMARY: ${pass} pass / ${fail} fail / ${err} err  (total ${files.length}, ${elapsedSec}s, ${args.threads} worker${args.threads > 1 ? "s" : ""})`,
   );
   console.log("================================================================");
 
@@ -239,4 +295,7 @@ function main() {
   process.exit(fail + err > 0 ? 1 : 0);
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
