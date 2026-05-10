@@ -64515,21 +64515,21 @@
     [
       {
         "type": "SYMBOL",
-        "name": "object_access"
+        "name": "__assign_keyword_identifier"
       },
       {
         "type": "SYMBOL",
-        "name": "__assign_keyword_identifier"
+        "name": "object_access"
       }
     ],
     [
       {
         "type": "SYMBOL",
-        "name": "_object_access_widget"
+        "name": "__assign_keyword_identifier"
       },
       {
         "type": "SYMBOL",
-        "name": "__assign_keyword_identifier"
+        "name": "_object_access_widget"
       }
     ],
     [
