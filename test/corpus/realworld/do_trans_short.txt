@@ -1,0 +1,18 @@
+================================================================================
+DO TRANS short form
+================================================================================
+
+DO TRANS:
+    x = 1.
+END.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (do_statement
+    (transaction)
+    (body
+      (assignment_statement
+        left: (identifier)
+        operator: (assignment_operator)
+        right: (number_literal)))))

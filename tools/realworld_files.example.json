@@ -1,0 +1,12 @@
+[
+  {
+    "label": "your-include.i",
+    "path": "C:\\path\\to\\your\\include.i",
+    "expectation": "pass"
+  },
+  {
+    "label": "YourClass.cls",
+    "path": "C:\\path\\to\\YourClass.cls",
+    "expectation": "pass"
+  }
+]

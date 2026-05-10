@@ -60,3 +60,9 @@ prompts
 abl.hash
 .codex
 ambient
+
+# Local realworld harness config (machine-specific paths)
+tools/realworld_files.json
+
+# Local agent config
+.claude/

@@ -4933,10 +4933,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -4966,10 +4962,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -12119,10 +12111,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -12152,10 +12140,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -13088,10 +13072,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -13121,10 +13101,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -17996,10 +17972,6 @@
             "named": true
           },
           {
-            "type": "super_statement",
-            "named": true
-          },
-          {
             "type": "system_dialog_color_statement",
             "named": true
           },
@@ -18029,10 +18001,6 @@
           },
           {
             "type": "terminal_statement",
-            "named": true
-          },
-          {
-            "type": "this_object_statement",
             "named": true
           },
           {
@@ -26724,7 +26692,131 @@
         "required": true,
         "types": [
           {
+            "type": "accum_expression",
+            "named": true
+          },
+          {
+            "type": "ambiguous_expression",
+            "named": true
+          },
+          {
+            "type": "argument_reference",
+            "named": true
+          },
+          {
+            "type": "array_access",
+            "named": true
+          },
+          {
+            "type": "available_expression",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean_literal",
+            "named": true
+          },
+          {
+            "type": "can_find_expression",
+            "named": true
+          },
+          {
+            "type": "conditional_expression",
+            "named": true
+          },
+          {
+            "type": "current_changed_expression",
+            "named": true
+          },
+          {
+            "type": "dataset_reference",
+            "named": true
+          },
+          {
+            "type": "date_literal",
+            "named": true
+          },
+          {
+            "type": "entered_expression",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "if_preprocessor_directive",
+            "named": true
+          },
+          {
+            "type": "include_file_reference",
+            "named": true
+          },
+          {
+            "type": "input_expression",
+            "named": true
+          },
+          {
+            "type": "locked_expression",
+            "named": true
+          },
+          {
+            "type": "macro_concatenated_name",
+            "named": true
+          },
+          {
+            "type": "new_expression",
+            "named": true
+          },
+          {
+            "type": "null_literal",
+            "named": true
+          },
+          {
+            "type": "number_literal",
+            "named": true
+          },
+          {
+            "type": "object_access",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "preprocessor_name",
+            "named": true
+          },
+          {
+            "type": "qualified_name",
+            "named": true
+          },
+          {
+            "type": "scoped_name",
+            "named": true
+          },
+          {
+            "type": "seek_expression",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "widget_qualified_name",
             "named": true
           }
         ]
@@ -28923,7 +29015,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "body",
@@ -28967,6 +29059,10 @@
         },
         {
           "type": "transaction",
+          "named": true
+        },
+        {
+          "type": "while_phrase",
           "named": true
         }
       ]
@@ -30195,10 +30291,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -30228,10 +30320,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -35385,16 +35473,6 @@
     "type": "format_phrase",
     "named": true,
     "fields": {
-      "as": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
       "bgcolor": {
         "multiple": true,
         "required": false,
@@ -37717,6 +37795,36 @@
           },
           {
             "type": "widget_qualified_name",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "generic_type",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "nested_type_name",
+            "named": true
+          },
+          {
+            "type": "qualified_name",
+            "named": true
+          },
+          {
+            "type": "scoped_name",
+            "named": true
+          },
+          {
+            "type": "string_literal",
             "named": true
           }
         ]
@@ -43180,10 +43288,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -43213,10 +43317,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -45195,10 +45295,6 @@
             "named": true
           },
           {
-            "type": "super_statement",
-            "named": true
-          },
-          {
             "type": "system_dialog_color_statement",
             "named": true
           },
@@ -45228,10 +45324,6 @@
           },
           {
             "type": "terminal_statement",
-            "named": true
-          },
-          {
-            "type": "this_object_statement",
             "named": true
           },
           {
@@ -45869,10 +45961,6 @@
             "named": true
           },
           {
-            "type": "super_statement",
-            "named": true
-          },
-          {
             "type": "system_dialog_color_statement",
             "named": true
           },
@@ -45902,10 +45990,6 @@
           },
           {
             "type": "terminal_statement",
-            "named": true
-          },
-          {
-            "type": "this_object_statement",
             "named": true
           },
           {
@@ -47919,7 +48003,7 @@
           }
         ]
       },
-      "name": {
+      "stream": {
         "multiple": false,
         "required": false,
         "types": [
@@ -53716,10 +53800,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -53749,10 +53829,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -54321,7 +54397,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "break",
@@ -54892,16 +54968,6 @@
           }
         ]
       },
-      "name": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      },
       "printer": {
         "multiple": false,
         "required": false,
@@ -54930,6 +54996,16 @@
           },
           {
             "type": "string_literal",
+            "named": true
+          }
+        ]
+      },
+      "stream": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
             "named": true
           }
         ]
@@ -56150,6 +56226,16 @@
     "type": "parameter",
     "named": true,
     "fields": {
+      "buffer": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
       "dataset": {
         "multiple": false,
         "required": false,
@@ -59453,10 +59539,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -59486,10 +59568,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -59579,6 +59657,24 @@
     "type": "property_set_parameter",
     "named": true,
     "fields": {
+      "direction": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "INPUT",
+            "named": false
+          },
+          {
+            "type": "INPUT-OUTPUT",
+            "named": false
+          },
+          {
+            "type": "OUTPUT",
+            "named": false
+          }
+        ]
+      },
       "like": {
         "multiple": false,
         "required": false,
@@ -65166,7 +65262,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "body",
@@ -70366,10 +70462,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -70399,10 +70491,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -72083,21 +72171,6 @@
         },
         {
           "type": "run_procedure_phrase",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "super_statement",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": false,
-      "types": [
-        {
-          "type": "arguments",
           "named": true
         }
       ]
@@ -75251,21 +75324,6 @@
     }
   },
   {
-    "type": "this_object_statement",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": false,
-      "types": [
-        {
-          "type": "arguments",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "to_phrase",
     "named": true,
     "fields": {}
@@ -76255,10 +76313,6 @@
           "named": true
         },
         {
-          "type": "super_statement",
-          "named": true
-        },
-        {
           "type": "system_dialog_color_statement",
           "named": true
         },
@@ -76288,10 +76342,6 @@
         },
         {
           "type": "terminal_statement",
-          "named": true
-        },
-        {
-          "type": "this_object_statement",
           "named": true
         },
         {
@@ -86187,10 +86237,6 @@
   },
   {
     "type": "THEN",
-    "named": false
-  },
-  {
-    "type": "THIS-OBJECT",
     "named": false
   },
   {

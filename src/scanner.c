@@ -168,6 +168,31 @@ bool tree_sitter_abl_external_scanner_scan(
           lexer->advance(lexer, false);
           continue;
         }
+        // Mark end at the closing quote; only extend through a valid
+        // ABL case-marker suffix: :[RLCT]U?[0-9]* | :U[0-9]* | :[0-9]+
+        lexer->mark_end(lexer);
+        if (lexer->lookahead == ':') {
+          lexer->advance(lexer, false);
+          int letter = lexer->lookahead;
+          bool extended = false;
+          if (letter == 'R' || letter == 'L' || letter == 'C' || letter == 'T'
+              || letter == 'r' || letter == 'l' || letter == 'c' || letter == 't') {
+            lexer->advance(lexer, false);
+            if (lexer->lookahead == 'U' || lexer->lookahead == 'u') {
+              lexer->advance(lexer, false);
+            }
+            while (iswdigit(lexer->lookahead)) lexer->advance(lexer, false);
+            extended = true;
+          } else if (letter == 'U' || letter == 'u') {
+            lexer->advance(lexer, false);
+            while (iswdigit(lexer->lookahead)) lexer->advance(lexer, false);
+            extended = true;
+          } else if (iswdigit(lexer->lookahead)) {
+            while (iswdigit(lexer->lookahead)) lexer->advance(lexer, false);
+            extended = true;
+          }
+          if (extended) lexer->mark_end(lexer);
+        }
         lexer->result_symbol = ESCAPED_STRING;
         return true;
       }

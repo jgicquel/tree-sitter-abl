@@ -147,10 +147,16 @@ module.exports = ({ kw }) => ({
       repeat1(choice($.__class_property_get_phrase, $.__class_property_set_phrase)),
     ),
 
-  __class_property_get_phrase: ($) => seq(kw("GET"), $.__class_property_accessor_tail),
+  __class_property_get_phrase: ($) =>
+    seq(optional($.__class_property_access_modifier), kw("GET"), $.__class_property_accessor_tail),
 
   __class_property_set_phrase: ($) =>
-    seq(kw("SET"), optional($.property_set_parameter_list), $.__class_property_accessor_tail),
+    seq(
+      optional($.__class_property_access_modifier),
+      kw("SET"),
+      optional($.property_set_parameter_list),
+      $.__class_property_accessor_tail,
+    ),
   __class_property_accessor_body: ($) => seq(alias($._colon, ":"), repeat($._statement), kw("END")),
   __class_property_accessor_tail: ($) =>
     choice(
@@ -160,7 +166,11 @@ module.exports = ({ kw }) => ({
 
   property_set_parameter_list: ($) => seq("(", $.property_set_parameter, ")"),
 
-  property_set_parameter: ($) => $.__class_named_parameter_body,
+  property_set_parameter: ($) =>
+    seq(
+      optional(field("direction", $.__class_method_parameter_direction)),
+      $.__class_named_parameter_body,
+    ),
   __class_named_parameter_body: ($) =>
     seq(
       field("name", $.identifier),
@@ -292,7 +302,10 @@ module.exports = ({ kw }) => ({
       seq(kw("TABLE-HANDLE"), $.__class_method_table_handle_parameter_tail),
       seq(kw("DATASET"), $.__class_method_dataset_parameter_tail),
       seq(kw("DATASET-HANDLE"), $.__class_method_dataset_handle_parameter_tail),
+      seq(kw("BUFFER"), $.__class_method_buffer_parameter_tail),
     ),
+  __class_method_buffer_parameter_tail: ($) =>
+    seq(field("buffer", $.identifier), kw("FOR"), field("table", $._identifier_or_qualified_name)),
   __class_method_table_parameter_tail: ($) =>
     seq(
       optional(field("for", kw("FOR"))),

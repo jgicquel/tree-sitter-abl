@@ -6,7 +6,7 @@ module.exports = ({ kw }) => ({
       kw("FOR"),
       $.__for_record_or_variables,
       optional(alias($.__for_while_phrase, $.while_phrase)),
-      optional(alias(kw("TRANSACTION"), $.transaction)),
+      optional(alias(kw("TRANSACTION", { offset: 5 }), $.transaction)),
       repeat(
         choice(
           $.stop_after_phrase,

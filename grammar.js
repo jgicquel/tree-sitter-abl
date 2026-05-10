@@ -56,7 +56,9 @@ const SYSTEM_HANDLE_WORDS = [
   "SELF",
   "SESSION",
   "SOURCE-PROCEDURE",
+  "SUPER",
   "TARGET-PROCEDURE",
+  "THIS-OBJECT",
   "THIS-PROCEDURE",
 ];
 
@@ -281,11 +283,7 @@ module.exports = grammar({
       number_literal: ($) => token(/([0-9]+(\.[0-9]+)?|\.[0-9]+)/),
       _signed_number_literal: ($) => token(/[+-]([0-9]+(\.[0-9]+)?|\.[0-9]+)/),
       date_literal: ($) => token(/[0-9]{1,2}[./][0-9]{1,2}[./][0-9]{2,4}/),
-      string_literal: ($) =>
-        seq(
-          $._escaped_string,
-          optional(token.immediate(/:(?:[RLCT](?:U)?(?:[0-9]+)?|U(?:[0-9]+)?|[0-9]+)/i)),
-        ),
+      string_literal: ($) => $._escaped_string,
       null_literal: ($) => token("?"),
       boolean_literal: ($) => choice(kw("TRUE"), kw("FALSE"), kw("YES"), kw("NO")),
       procedure_name: ($) => /[A-Za-z0-9_\\/.-]+\.pl?/i,
@@ -478,7 +476,12 @@ module.exports = grammar({
         seq(
           field(
             "function",
-            choice($._identifier_or_qualified_name, $.object_access, $.scoped_name),
+            choice(
+              $._identifier_or_qualified_name,
+              $.object_access,
+              $.scoped_name,
+              $.system_handle_identifier,
+            ),
           ),
           $.arguments,
         ),
@@ -504,7 +507,10 @@ module.exports = grammar({
 
       // Identifiers
       // BE CAREFUL MODIFYING HERE, IDENTIFIER ORDER FOR SOME REASON MATTERS!
-      identifier: ($) => token(/[_\p{L}][\p{L}\p{N}_\-&#]*/i),
+      // Allowed punctuation in identifiers: _ - & # %
+      // The % is supported for legacy naming conventions ("P%RowId" style)
+      // seen in real-world ABL codebases.
+      identifier: ($) => token(/[_\p{L}][\p{L}\p{N}_\-&#%]*/i),
       system_handle_identifier: ($) =>
         alias(
           token(prec(1, new RegExp(`(${SYSTEM_HANDLE_WORDS.map(escape_regex).join("|")})`, "i"))),
@@ -512,7 +518,7 @@ module.exports = grammar({
         ),
       _label_identifier: ($) => $.identifier,
       _label: ($) => prec.right(1, seq(field("label", $.identifier), alias($._colon, ":"))),
-      _identifier_immediate: ($) => token.immediate(/[_\p{L}][\p{L}\p{N}_-]*/i),
+      _identifier_immediate: ($) => token.immediate(/[_\p{L}][\p{L}\p{N}_\-%]*/i),
       _alias_name: ($) => choice($.identifier, $.string_literal, $._value_expression),
       _os_filename: ($) => choice($.string_literal, $._identifier_or_access_or_call),
       parenthesized_identifier: ($) => seq("(", $.identifier, ")"),

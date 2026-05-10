@@ -1,0 +1,28 @@
+================================================================================
+METHOD with BUFFER parameter
+================================================================================
+
+CLASS pkg.Foo:
+    METHOD PUBLIC CHARACTER MyMethod(BUFFER pBuf FOR myTable):
+        RETURN "".
+    END METHOD.
+END CLASS.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (class_definition
+    name: (qualified_name
+      left: (identifier)
+      right: (identifier))
+    (method_definition
+      (access_modifier)
+      type: (identifier)
+      name: (identifier)
+      (parameters
+        (parameter
+          buffer: (identifier)
+          table: (identifier)))
+      (body
+        (return_statement
+          value: (string_literal))))))

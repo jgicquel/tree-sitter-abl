@@ -1,0 +1,23 @@
+================================================================================
+FOR EACH WHERE comparison with case-marked string then NO-LOCK
+================================================================================
+
+FOR EACH customer WHERE customer.id = "X":U NO-LOCK:
+    DISPLAY customer.
+END.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (for_statement
+    (record_phrase
+      record: (identifier)
+      where: (binary_expression
+        (qualified_name
+          left: (identifier)
+          right: (identifier))
+        (string_literal))
+      (no_lock))
+    (body
+      (display_statement
+        record: (identifier)))))
