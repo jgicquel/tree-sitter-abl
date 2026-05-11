@@ -1,6 +1,6 @@
 {
   "name": "@usagi-coffee/tree-sitter-abl",
-  "version": "0.0.51",
+  "version": "0.0.52",
   "description": "OpenEdge ABL grammar for tree-sitter",
   "keywords": [
     "abl",
@@ -61,7 +61,6 @@
     "nodemon": "^3.1.14",
     "oxfmt": "^0.43.0",
     "prebuildify": "^6.0.1",
-    "tree-sitter": "^0.25.0",
     "tree-sitter-cli": "^0.26.8"
   },
   "peerDependencies": {
