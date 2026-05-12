@@ -65,3 +65,8 @@ tools/realworld_files.json
 
 # Local agent config
 .claude/
+
+# Generated parser source (built from grammar.js; rebuilt by CI / install)
+# Tree-sitter generated parser.c exceeds GitHub's 100 MiB blob limit, so the
+# repo regenerates it on demand instead of tracking it.
+src/parser.c

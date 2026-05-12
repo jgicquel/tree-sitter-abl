@@ -11,7 +11,8 @@ module.exports = ({ kw }) => ({
   __widget_frame: ($) => seq(kw("FRAME"), field("frame", $.identifier)),
   __widget_browse: ($) => seq(kw("BROWSE"), field("browse", $.identifier)),
 
-  __widget_handle: ($) => seq(field("handle", $._identifier_or_qualified_name)),
+  __widget_handle: ($) =>
+    seq(field("handle", choice($._identifier_or_qualified_name, $.preprocessor_name))),
 
   __widget_entry: ($) =>
     choice(

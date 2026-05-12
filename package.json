@@ -30,6 +30,7 @@
   "types": "bindings/node",
   "scripts": {
     "install": "node-gyp-build",
+    "prepare": "bun run tools/generate.js && bun run tools/minify.js",
     "prestart": "tree-sitter build --wasm",
     "start": "tree-sitter playground",
     "format": "oxfmt",

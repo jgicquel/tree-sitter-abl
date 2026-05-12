@@ -25,11 +25,16 @@ module.exports = ({ kw }) => ({
   __create_buffer: ($) =>
     seq(
       kw("BUFFER"),
-      field("handle", $.identifier),
+      field("handle", $._identifier_or_qualified_name),
       kw("FOR"),
       kw("TABLE"),
       field("table", $.__create_buffer_target),
-      optional(seq(kw("BUFFER-NAME"), field("name", $.identifier))),
+      optional(
+        seq(
+          kw("BUFFER-NAME"),
+          field("name", choice($._identifier_or_qualified_name, $.string_literal)),
+        ),
+      ),
       optional($._in_widget_pool),
       optional($.__create_no_error),
     ),
@@ -97,6 +102,6 @@ module.exports = ({ kw }) => ({
   __create_record_locator_rowid: ($) => seq("(", field("rowid", $._expression), ")"),
   __create_record_locator_recid: ($) => seq("(", field("recid", $._expression), ")"),
   __create_handle_in_widget_pool: ($) =>
-    seq(field("handle", $.identifier), optional($._in_widget_pool)),
+    seq(field("handle", $._identifier_or_array_access), optional($._in_widget_pool)),
   __create_no_error: ($) => alias(kw("NO-ERROR"), $.no_error),
 });

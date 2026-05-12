@@ -34,10 +34,12 @@ END TRIGGERS.
         right: (boolean_literal))))
   (create_widget_statement
     handle: (identifier)
+    event: (identifier)
     (do_statement
       (body
         (message_statement
           (string_literal))))
+    event: (identifier)
     (do_statement
       (body
         (message_statement
@@ -75,3 +77,72 @@ CREATE BROWSE hBr IN WIDGET-POOL wp ASSIGN TITLE = "t".
       (assign_pair
         left: (identifier)
         right: (string_literal)))))
+
+================================================================================
+CREATE WIDGET - TRIGGERS with PERSISTENT RUN
+================================================================================
+
+CREATE COMBO-BOX hCb IN WIDGET-POOL wp
+  ASSIGN SENSITIVE = YES
+  TRIGGERS:
+    ON VALUE-CHANGED PERSISTENT RUN myHandler.
+    ON LEAVE PERSISTENT RUN leaveHandler IN hProc.
+  END.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (create_widget_statement
+    handle: (identifier)
+    pool: (identifier)
+    (assign_phrase
+      (assign_pair
+        left: (identifier)
+        right: (boolean_literal)))
+    event: (identifier)
+    procedure: (identifier)
+    event: (identifier)
+    procedure: (identifier)
+    handle: (identifier)))
+
+================================================================================
+CREATE WIDGET - qualified and array-subscripted handle
+================================================================================
+
+CREATE IMAGE myRecord.fld[1] IN WIDGET-POOL wp.
+CREATE EDITOR myObj.widget[i] IN WIDGET-POOL myPool.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (create_widget_statement
+    handle: (array_access
+      array: (qualified_name
+        left: (identifier)
+        right: (identifier))
+      index: (number_literal))
+    pool: (identifier))
+  (create_widget_statement
+    handle: (array_access
+      array: (qualified_name
+        left: (identifier)
+        right: (identifier))
+      index: (identifier))
+    pool: (identifier)))
+
+================================================================================
+CREATE WIDGET - string literal IN WIDGET-POOL
+================================================================================
+
+CREATE TEXT myRecord.fld[2] IN WIDGET-POOL 'pool'.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (create_widget_statement
+    handle: (array_access
+      array: (qualified_name
+        left: (identifier)
+        right: (identifier))
+      index: (number_literal))
+    pool: (string_literal)))

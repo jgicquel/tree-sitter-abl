@@ -44,12 +44,8 @@ module.exports = ({ kw }) => ({
       prec(-1, alias(kw("SKIP"), $.skip)),
       seq(
         field("field", $._identifier_or_array_access),
-        optional(
-          choice(
-            alias($.at_phrase, $.format_phrase),
-            alias($.__frame_field_format_phrase, $.format_phrase),
-          ),
-        ),
+        optional(alias($.at_phrase, $.format_phrase)),
+        optional(alias($.__frame_field_format_phrase, $.format_phrase)),
       ),
       seq($.preprocessor_name, optional($.__frame_display_value_tail)),
       seq(field("value", $.string_literal), optional($.__frame_display_value_tail)),
@@ -96,6 +92,7 @@ module.exports = ({ kw }) => ({
           seq(kw("PFCOLOR"), field("pfcolor", $._expression)),
           $._format_validate,
           $._format_view_as,
+          seq(kw("TOOLTIP"), field("tooltip", $._expression)),
           seq(kw("WIDGET-ID"), field("widget_id", $._expression)),
         ),
       ),

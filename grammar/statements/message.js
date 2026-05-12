@@ -29,7 +29,9 @@ module.exports = ({ kw }) => ({
       kw("ALERT-BOX"),
       optional(alias($.__message_alert_type, $.alert_type)),
       optional($.__message_buttons_phrase),
-      optional(seq(kw("TITLE"), field("title", $.string_literal))),
+      optional(
+        seq(kw("TITLE"), field("title", choice($.string_literal, $._identifier_or_qualified_name))),
+      ),
     ),
 
   __message_alert_type: ($) =>

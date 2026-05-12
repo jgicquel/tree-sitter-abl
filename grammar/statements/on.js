@@ -138,6 +138,7 @@ module.exports = ({ kw }) => ({
         kw("RUN"),
         field("procedure", $.identifier),
         optional($.arguments),
+        optional(seq(kw("IN"), field("in", $._identifier_or_qualified_name))),
         $._terminator,
       ),
     ),

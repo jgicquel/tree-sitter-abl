@@ -38,16 +38,27 @@ jobs:
 
       - run: npm install --ignore-scripts --no-audit --no-fund
 
+      # parser.c is not committed (it would exceed GitHub's 100 MiB blob
+      # limit), so every platform regenerates it from grammar.js before
+      # building. tree-sitter-cli's binary is fetched by its postinstall,
+      # which the `--ignore-scripts` above skipped — rebuild just that
+      # package.
+      - if: runner.os != 'Windows'
+        run: |
+          npm rebuild tree-sitter-cli
+          npx tree-sitter generate
+        shell: bash
+
       # Linux/macOS: prebuildify handles it; GCC/Clang are happy with the
-      # committed minified parser.c (one ~5 MB line).
+      # multi-line parser.c emitted by `tree-sitter generate`.
       - if: runner.os != 'Windows'
         run: npx prebuildify --napi --strip --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
         shell: bash
 
       # Windows: two MSVC pitfalls combined here.
       # 1. cl.exe (32-bit AND 64-bit) chokes on the minified one-line parser.c
-      #    with C1060 "out of heap space" — we regenerate the canonical
-      #    multi-line parser.c first.
+      #    with C1060 "out of heap space" — we keep the canonical multi-line
+      #    parser.c emitted by `tree-sitter generate`, no minify pass.
       # 2. Even on multi-line, MSVC cl.exe's heap runs out on this huge parser.
       #    Build with clang-cl (PlatformToolset=ClangCL, shipped with VS 2022)
       #    which is far more memory-efficient on big generated code.

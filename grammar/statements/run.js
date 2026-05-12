@@ -44,7 +44,7 @@ module.exports = ({ kw }) => ({
       $.qualified_name,
     ),
   // Path-style procedure name without extension, e.g.
-  // RUN Erp/Model/Vente/ErpTrtSaisieLignePieceClient PERSISTENT SET h.
+  // RUN some/path/MyProcedure PERSISTENT SET h.
   __run_procedure_path: ($) => token(/[A-Za-z_][A-Za-z0-9_-]*(?:[/\\][A-Za-z_][A-Za-z0-9_-]*)+/),
   __run_library_member: ($) =>
     seq(

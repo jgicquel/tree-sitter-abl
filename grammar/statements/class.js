@@ -122,7 +122,7 @@ module.exports = ({ kw }) => ({
     seq($.__class_compound_body, optional(choice(kw("CONSTRUCTOR"), kw("METHOD"))), $._terminator),
 
   __class_destructor_body: ($) =>
-    seq($.__class_compound_body, optional(kw("DESTRUCTOR")), $._terminator),
+    seq($.__class_compound_body, optional(choice(kw("DESTRUCTOR"), kw("METHOD"))), $._terminator),
   __class_compound_body: ($) => seq(repeat($._statement), kw("END")),
 
   __class_destructor_parameters: ($) => seq("(", ")"),

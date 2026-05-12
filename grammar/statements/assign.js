@@ -25,7 +25,7 @@ module.exports = ({ kw }) => ({
 
   __assign_input_body: ($) =>
     seq(
-      optional(kw("INPUT")),
+      kw("INPUT"),
       choice(
         seq(kw("FRAME"), field("frame", $.identifier)),
         seq(kw("BROWSE"), field("browse", $.identifier)),

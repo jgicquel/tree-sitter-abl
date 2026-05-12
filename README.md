@@ -9,7 +9,12 @@ OpenEdge Advanced Business Language (ABL) grammar for tree-sitter.
 
 The grammar currently faces a few issues, please keep in mind:
 
-- Tree-sitter generated `parser.c` (due to high action/state count) is currently beyond the GitHub file limit (100MiB) so it needs to be "minified" to be hosted on GitHub, look at `tools/minify.js`.
+- Tree-sitter generated `parser.c` (due to high action/state count) exceeds GitHub's 100 MiB file limit, so it is **not committed** to the repository. It is regenerated from `grammar.js` on demand:
+  - `bun install` triggers the `prepare` script (`bun run tools/generate.js && bun run tools/minify.js`) which creates `src/parser.c` minified.
+  - The CI workflow (`.github/workflows/ci.yml`) regenerates `parser.c` before building and testing.
+  - The release workflow (`.github/workflows/release.yml`) regenerates `parser.c` before building the native (`.so`) and `.wasm` artifacts.
+  - When publishing to npm, `prepare` runs at pack time and `src/parser.c` is included in the tarball via the `files` allow-list, so registry consumers receive a ready-to-build package.
+  - Local development requires [Bun](https://bun.sh) because `tools/generate.js` and `tools/minify.js` rely on Bun APIs. Run `bun run generate` to (re)create `parser.c`.
 - Compiling `.wasm` is impossible without upstream fixes in LLVM, [the fix has been merged](https://github.com/llvm/llvm-project/pull/181755) and the change is expected to come out in `clang-22.2` or later, it then needs to be adopted in [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) (and optionally [emscripten](https://emscripten.org/)).
 - During the `.wasm` build, tree-sitter uses [`wasm-opt`](https://github.com/WebAssembly/binaryen) optimization pass on the binary, the pass [takes a long time](https://github.com/WebAssembly/binaryen/issues/7319) (~16mins), please be patient.
 

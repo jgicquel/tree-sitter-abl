@@ -186,6 +186,7 @@ module.exports = grammar({
             $._identifier_or_qualified_name,
             alias(kw("NEW"), $.identifier),
             alias(kw("WINDOW"), $.identifier),
+            alias(kw("IN"), $.identifier),
             $.object_access,
             $.array_access,
             $.string_literal,
@@ -321,7 +322,7 @@ module.exports = grammar({
           // {&MACRO}IDENT, {&MACRO}IDENT{&MACRO2}, etc., but explicitly
           // does NOT match a bare identifier (falls through to $.identifier)
           // nor a bare {&MACRO} (falls through to $.preprocessor_name).
-          /(?:[_\p{L}][\p{L}\p{N}_\-&]*\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}[\p{L}\p{N}_\-&]+)(?:[\p{L}\p{N}_\-&]|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\})*/i,
+          /(?:[_\p{L}][\p{L}\p{N}_\-&#%$]*\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\}[\p{L}\p{N}_\-&#%$]+)(?:[\p{L}\p{N}_\-&#%$]|\{(?:&[0-9A-Za-z_-]+|[0-9A-Za-z_-]+)\})*/i,
         ),
 
       _widgets: ($) => prec.right(alias(choice(...WIDGETS, kw("FRAME")), $.identifier)),
@@ -370,6 +371,7 @@ module.exports = grammar({
           $.array_access,
           $.function_call,
           $.system_handle_identifier,
+          $.preprocessor_name,
         ),
 
       // Expressions
@@ -402,7 +404,10 @@ module.exports = grammar({
       // Accessors
       _object_access_plain: ($) =>
         seq(
-          field("left", choice($._identifier_or_qualified_name, $.system_handle_identifier)),
+          field(
+            "left",
+            choice($._identifier_or_qualified_name, $.system_handle_identifier, $.preprocessor_name),
+          ),
           $._object_access_tail,
         ),
       _object_access_widget: ($) =>
@@ -478,16 +483,19 @@ module.exports = grammar({
       _argument_list: ($) => seq($.argument, repeat(seq(",", $.argument))),
       argument: ($) =>
         seq(
-          optional(choice(kw("INPUT"), kw("OUTPUT"), kw("INPUT-OUTPUT"))),
+          optional(choice(kw("INPUT"), kw("OUTPUT"), kw("INPUT-OUTPUT", { offset: 7 }))),
           choice(
             seq(
               choice(kw("TABLE"), kw("BUFFER"), kw("TABLE-HANDLE"), kw("DATASET-HANDLE")),
               field("name", choice($._identifier_or_qualified_name, $.object_access)),
             ),
-            field("name", $._expression),
+            seq(
+              field("name", $._expression),
+              optional(seq(kw("IN"), field("in_handle", $._identifier_or_array_access))),
+            ),
           ),
           optional(seq(kw("AS"), field("type", $._type_name))),
-          optional(kw("BY-REFERENCE")),
+          optional(choice(kw("BY-REFERENCE"), kw("BY-VALUE"), kw("APPEND"), kw("BIND"))),
         ),
 
       function_call: ($) =>
@@ -499,6 +507,7 @@ module.exports = grammar({
               $.object_access,
               $.scoped_name,
               $.system_handle_identifier,
+              alias(kw("CLOSE"), $.identifier),
             ),
           ),
           $.arguments,

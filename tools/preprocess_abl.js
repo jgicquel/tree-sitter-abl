@@ -42,26 +42,42 @@ function reduceAmpersandConditionals(source) {
   const emittingHere = () => stack.every((s) => s.emitting);
 
   const startsWith = (line, kw) => new RegExp(`^\\s*${kw}\\b`, "i").test(line);
+  // A `~` at end of line (optionally followed by whitespace) is ABL line
+  // continuation for preprocessor directives like &Scoped-Define.
+  const isContinued = (line) => /~\s*$/.test(line);
+
+  // When stripping a `&` directive, also strip its continuation lines.
+  let stripContinuation = false;
 
   for (const line of lines) {
+    if (stripContinuation) {
+      const wasContinued = isContinued(line);
+      out.push("");
+      stripContinuation = wasContinued;
+      continue;
+    }
     // The `&IF` keyword may appear with text both before (rare) and after.
     // For our purposes we treat `&IF` / `&ELSEIF` / `&ELSE` / `&ENDIF` as
     // line-level directives — they always start the line in real ABL code.
     if (startsWith(line, "&IF")) {
       stack.push({ emitting: emittingHere() });
+      stripContinuation = isContinued(line);
       continue;
     }
     if (startsWith(line, "&ELSEIF") || startsWith(line, "&ELSE")) {
       if (stack.length > 0) stack[stack.length - 1].emitting = false;
+      stripContinuation = isContinued(line);
       continue;
     }
     if (startsWith(line, "&ENDIF")) {
       if (stack.length > 0) stack.pop();
+      stripContinuation = isContinued(line);
       continue;
     }
     if (/^\s*&/.test(line)) {
       // Other &-directive line (&SCOPED-DEFINE / &GLOBAL-DEFINE / &MESSAGE /
       // &ANALYZE-… / &UNDEFINE / &THEN-on-its-own / etc.) — drop it.
+      stripContinuation = isContinued(line);
       continue;
     }
     if (emittingHere()) out.push(line);
@@ -139,7 +155,8 @@ function preprocessABL(src, opts = {}) {
     ampersandLines: true,
     proparseAnnotation: true,
     argRefBare: true,
-    singletonInclude: true,
+    classOpenerInclude: false,
+    forEachOpenerInclude: false,
   };
   const enabled = (name) => (opts[name] !== undefined ? opts[name] : enabledByDefault[name]);
 
@@ -159,22 +176,32 @@ function preprocessABL(src, opts = {}) {
   }
   if (enabled("namedDefineWithArgs"))
     r = r.replace(/\{&([A-Za-z_][A-Za-z0-9_\-]*)\s+[^}]+\}/g, "__PP_$1");
-  if (enabled("singletonInclude")) {
-    // {<...>Singleton.i ClassName [IMPLEMENTS Iface[, Iface2…]]} expands to
-    // a class header opening a class block. Replace it with a literal
-    // `CLASS <ClassName> [IMPLEMENTS Iface]:` and append `END CLASS.` at
-    // the end so the rest of the file parses inside a class scope.
-    let injectedHeader = false;
-    r = r.replace(
-      /\{[^}]*Singleton\.i\s+([A-Za-z_][\w.\-]*)(\s+IMPLEMENTS\s+[^}]+)?\}/g,
-      (_m, className, implementsClause) => {
+  if (enabled("classOpenerInclude")) {
+    // Some codebases use include files that emit a `CLASS Name:` opener.
+    // Match such includes by name pattern (configurable via opts) and inject
+    // the class header so downstream code parses inside a class scope. By
+    // default no pattern is provided — set opts.classOpenerInclude to a
+    // RegExp matching the include filename.
+    const pattern = opts.classOpenerIncludePattern;
+    if (pattern) {
+      let injectedHeader = false;
+      r = r.replace(pattern, (_m, className, implementsClause) => {
         injectedHeader = true;
         const impl = implementsClause ? implementsClause.replace(/\s+/g, " ").trimEnd() : "";
         return `CLASS ${className}${impl}:`;
-      },
-    );
-    if (injectedHeader && !/\bEND\s+CLASS\b/i.test(r)) {
-      r = r + "\nEND CLASS.\n";
+      });
+      if (injectedHeader && !/\bEND\s+CLASS\b/i.test(r)) {
+        r = r + "\nEND CLASS.\n";
+      }
+    }
+  }
+  if (enabled("forEachOpenerInclude")) {
+    // Some include files emit a `FOR EACH ...:` block opener that needs a
+    // matching END.. Inject a synthetic opener so the matching END. closes
+    // correctly. Configurable via opts.forEachOpenerIncludePattern.
+    const pattern = opts.forEachOpenerIncludePattern;
+    if (pattern) {
+      r = r.replace(pattern, (_m, varName) => `FOR EACH __${varName}_iter TRANSACTION:`);
     }
   }
   return r.replace(/\s+$/, "");

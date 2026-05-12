@@ -34,7 +34,12 @@ module.exports = ({ kw }) => ({
     ),
   __create_widget_assign_triggers_tail: ($) =>
     choice(seq($.assign_phrase, optional($.__create_widget_triggers)), $.__create_widget_triggers),
-  __create_widget_handle: ($) => seq(field("handle", $.identifier), optional($._in_widget_pool)),
+  __create_widget_handle: ($) =>
+    seq(
+      field("handle", $._identifier_or_array_access),
+      optional($._in_widget_pool),
+      optional(alias(kw("NO-ERROR"), $.no_error)),
+    ),
 
   __create_widget_triggers: ($) =>
     seq(
@@ -42,13 +47,23 @@ module.exports = ({ kw }) => ({
       alias($._colon, ":"),
       repeat1($.__create_widget_trigger_definition),
       kw("END"),
-      kw("TRIGGERS"),
+      optional(kw("TRIGGERS")),
     ),
 
   __create_widget_trigger_definition: ($) =>
     seq(
       kw("ON"),
-      field("event", choice(kw("CHOOSE"), kw("ENTRY"), kw("LEAVE"), $.identifier)),
-      $.do_statement,
+      field("event", $.__create_widget_event_list),
+      choice($.do_statement, $.__create_widget_persistent_trigger),
+    ),
+  __create_widget_event_list: ($) => seq($._events, repeat(seq(",", $._events))),
+  __create_widget_persistent_trigger: ($) =>
+    seq(
+      kw("PERSISTENT"),
+      kw("RUN"),
+      field("procedure", $.identifier),
+      optional(seq(kw("IN"), field("handle", $.identifier))),
+      optional(seq("(", field("parameters", $._expressions), ")")),
+      $._terminator_dot,
     ),
 });

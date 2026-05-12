@@ -41,7 +41,7 @@ module.exports = ({ kw }) => ({
     ),
   __format_at_column: ($) =>
     choice(
-      seq(kw("COLUMN"), field("column", $._expression)),
+      seq(kw("COLUMN", { offset: 3 }), field("column", $._expression)),
       seq(kw("COLUMN-OF"), field("column_of", $._expression)),
     ),
   __format_at_row: ($) =>
@@ -138,6 +138,13 @@ module.exports = ({ kw }) => ({
   _format_view_as: ($) =>
     seq(
       kw("VIEW-AS"),
-      choice(kw("TEXT"), kw("TOGGLE-BOX"), alias($.__format_editor_phrase, $.editor_phrase)),
+      choice(
+        kw("TEXT"),
+        $.__format_toggle_box,
+        $.__format_fill_in,
+        alias($.__format_editor_phrase, $.editor_phrase),
+      ),
     ),
+  __format_toggle_box: ($) => seq(kw("TOGGLE-BOX"), optional($.size_phrase)),
+  __format_fill_in: ($) => seq(kw("FILL-IN"), optional(kw("NATIVE")), optional($.size_phrase)),
 });

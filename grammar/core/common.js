@@ -7,7 +7,8 @@ module.exports = ({ kw }) => ({
       seq(kw("LIKE"), field("like", $._identifier_or_qualified_name)),
     ),
 
-  _in_widget_pool: ($) => seq(kw("IN"), kw("WIDGET-POOL"), field("pool", $.identifier)),
+  _in_widget_pool: ($) =>
+    seq(kw("IN"), kw("WIDGET-POOL"), field("pool", $._identifier_or_string_literal)),
 
   _except_fields: ($) => seq(kw("EXCEPT"), repeat1(field("except", $.identifier))),
   _map_entry: ($) => $._identifier_or_string_literal,
@@ -65,7 +66,7 @@ module.exports = ({ kw }) => ({
 
   _loop_phrase: ($) =>
     seq(
-      field("variable", $.identifier),
+      field("variable", choice($.identifier, $.macro_concatenated_name)),
       "=",
       field("start", $._expression),
       kw("TO"),
