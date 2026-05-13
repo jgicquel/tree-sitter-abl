@@ -1,0 +1,119 @@
+name: prebuilds
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'prebuilds/**'
+      - '**/*.md'
+      - '.github/**'
+      - '!.github/workflows/prebuilds.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Opt JS-based actions (checkout, setup-node, upload/download-artifact, ...)
+# into Node.js 24. GitHub forces this by 2026-06-02; setting it now removes
+# the deprecation warning today.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  platform: linux,  arch: x64   }
+          - { os: windows-latest, platform: win32,  arch: x64   }
+          - { os: macos-latest,   platform: darwin, arch: arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm install --ignore-scripts --no-audit --no-fund
+
+      # Linux/macOS: prebuildify handles it; GCC/Clang are happy with the
+      # committed minified parser.c (one ~5 MB line).
+      - if: runner.os != 'Windows'
+        run: npx prebuildify --napi --strip --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+        shell: bash
+
+      # Windows: two MSVC pitfalls combined here.
+      # 1. cl.exe (32-bit AND 64-bit) chokes on the minified one-line parser.c
+      #    with C1060 "out of heap space" — we regenerate the canonical
+      #    multi-line parser.c first.
+      # 2. Even on multi-line, MSVC cl.exe's heap runs out on this huge parser.
+      #    Build with clang-cl (PlatformToolset=ClangCL, shipped with VS 2022)
+      #    which is far more memory-efficient on big generated code.
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # tree-sitter-cli's binary is fetched by its postinstall, which
+          # --ignore-scripts skipped — rebuild just that package.
+          npm rebuild tree-sitter-cli
+          npx tree-sitter generate
+
+          npx node-gyp configure --arch=x64
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath  = & $vswhere -latest -property installationPath
+          $msbuild = Join-Path $vsPath 'MSBuild\Current\Bin\amd64\MSBuild.exe'
+          if (-not (Test-Path $msbuild)) { throw "64-bit MSBuild not found at $msbuild" }
+          Write-Host "Using 64-bit MSBuild: $msbuild"
+          & $msbuild build/binding.sln `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:PlatformToolset=ClangCL `
+            /clp:Verbosity=minimal /nologo
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed" }
+          New-Item -ItemType Directory -Force -Path prebuilds/win32-x64 | Out-Null
+          Copy-Item build/Release/tree_sitter_abl_binding.node `
+                    prebuilds/win32-x64/node.napi.node -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.platform }}-${{ matrix.arch }}
+          path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+
+  commit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+          pattern: prebuild-*
+
+      - name: Reorganize artifacts under prebuilds/
+        run: |
+          set -euo pipefail
+          for d in _artifacts/prebuild-*; do
+            name="${d#_artifacts/prebuild-}"
+            mkdir -p "prebuilds/$name"
+            cp -r "$d"/. "prebuilds/$name/"
+          done
+          rm -rf _artifacts
+          ls -R prebuilds
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prebuilds
+          if git diff --cached --quiet; then
+            echo "No prebuild changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(prebuilds): refresh native binaries [skip ci]"
+          git push origin master
