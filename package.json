@@ -49,6 +49,7 @@
     "audit:node-types": "node tools/audit_node_types.js",
     "parse": "bun run tools/generate.js && tree-sitter parse",
     "parse:snippet": "bun run tools/generate.js && bun run tools/parse.js",
+    "resolve": "bun run tools/resolve.js",
     "reference": "bun run tools/reference.js",
     "build": "bun run tools/generate.js && tree-sitter build",
     "build:wasm": "tree-sitter generate && tree-sitter build -w",
