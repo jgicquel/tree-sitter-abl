@@ -125,6 +125,7 @@ export default ({ kw }) => ({
           alias(kw("PACKAGE-PROTECTED"), $.access_modifier),
           alias(kw("PUBLIC"), $.access_modifier),
           alias(kw("STATIC"), $.static_modifier),
+          $.preprocessor_name,
         ),
       ),
       field("name", $.identifier),
