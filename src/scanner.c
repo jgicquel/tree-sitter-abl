@@ -23,7 +23,10 @@ enum TokenType {
 
 // Case-insensitive suffix match, so a configured "foo/bar.i" matches
 // regardless of how deep the leading directory path goes, but a
-// differently-located include of the same base name does not.
+// differently-located include of the same base name does not. '/' and '\'
+// compare equal, since __include_file_name (grammar.js) accepts both and an
+// include path's actual separator is whatever the author typed, independent
+// of how the suffix happens to be spelled in the configured list.
 static bool ends_with_ci(const char *text, int text_len, const char *suffix) {
   int suffix_len = 0;
   while (suffix[suffix_len]) suffix_len++;
@@ -35,6 +38,8 @@ static bool ends_with_ci(const char *text, int text_len, const char *suffix) {
     char b = suffix[i];
     if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
     if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+    if (a == '\\') a = '/';
+    if (b == '\\') b = '/';
     if (a != b) return false;
   }
   return true;
