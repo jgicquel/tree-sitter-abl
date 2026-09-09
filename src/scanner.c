@@ -17,7 +17,8 @@ enum TokenType {
   STRING_LITERAL,
   BLOCK_COMMENT,
   INCLUDE_DO_OPENER_MARKER,
-  INCLUDE_CLASS_OPENER_MARKER
+  INCLUDE_CLASS_OPENER_MARKER,
+  MACRO_STATEMENT
 };
 
 // Case-insensitive suffix match, so a configured "foo/bar.i" matches
@@ -145,45 +146,111 @@ bool tree_sitter_abl_external_scanner_scan(
   // is no way to know that from the grammar alone without reading the
   // include, so this is decided by name here and committed to a zero-width
   // marker token ahead of the ordinary include grammar, deterministically,
-  // rather than leaving it as a grammar-level ambiguity (see grammar/
-  // statements do.js and class.js for why: it forced GLR conflicts across
-  // every other place an include can appear).
-  if (valid_symbols[INCLUDE_DO_OPENER_MARKER] || valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) {
+  // rather than leaving it as a grammar-level ambiguity (see grammar/statements
+  // do.js and class.js for why: it forced GLR conflicts across every other
+  // place an include can appear).
+  // Both checks below start from the same '{' and cannot be tried one after
+  // the other within a single scan() call (advance() is not undoable short
+  // of returning false, which discards everything from this call, not just
+  // the failed sub-attempt) — so dispatch once, up front, on the character
+  // after '{': a {&NAME} macro statement is the only one of the two that can
+  // start with '&' there, a do/class-opening include path never does.
+  bool wants_include_marker =
+      valid_symbols[INCLUDE_DO_OPENER_MARKER] || valid_symbols[INCLUDE_CLASS_OPENER_MARKER];
+
+  if (wants_include_marker || valid_symbols[MACRO_STATEMENT]) {
     // Extras (whitespace) are not yet skipped when the external scanner runs;
     // skip them as extras (advance(..., true)) before looking for '{', or a
-    // merely-indented include (the common case, nested in a method body)
-    // would never be recognized.
+    // merely-indented include/macro (the common case, nested in a method
+    // body) would never be recognized.
     while (!lexer->eof(lexer) && iswspace(lexer->lookahead)) {
       lexer->advance(lexer, true);
     }
   }
 
-  if ((valid_symbols[INCLUDE_DO_OPENER_MARKER] || valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) &&
-      lexer->lookahead == '{') {
-    lexer->mark_end(lexer); // freeze a zero-width token right before '{'
-
-    char buf[128];
-    int len = 0;
+  if ((wants_include_marker || valid_symbols[MACRO_STATEMENT]) && lexer->lookahead == '{') {
+    lexer->mark_end(lexer); // freeze a zero-width end right before '{', for the include markers
     lexer->advance(lexer, false); // consume '{' for lookahead only, past the frozen end
 
-    while (!lexer->eof(lexer) && lexer->lookahead != '}' && !iswspace(lexer->lookahead)) {
-      if (len < (int)sizeof(buf) - 1) buf[len++] = (char)lexer->lookahead;
-      lexer->advance(lexer, false);
-    }
+    // A configured include path (see ScannerState above) expands to an
+    // unclosed DO/CLASS that the invoking file closes with a bare END.
+    // There is no way to know that from the grammar alone without reading
+    // the include, so recognize a configured path by name here and commit
+    // to a zero-width marker token ahead of the ordinary include grammar,
+    // deterministically, rather than leaving it as a grammar-level
+    // ambiguity (see grammar/statements do.js and class.js for why: it
+    // forced GLR conflicts across every other place an include can appear).
+    if (wants_include_marker && lexer->lookahead != '&') {
+      char buf[128];
+      int len = 0;
 
-    if (valid_symbols[INCLUDE_DO_OPENER_MARKER]) {
-      for (int i = 0; i < state->do_openers.count; i++) {
-        if (ends_with_ci(buf, len, state->do_openers.items[i])) {
-          lexer->result_symbol = INCLUDE_DO_OPENER_MARKER;
-          return true;
+      while (!lexer->eof(lexer) && lexer->lookahead != '}' && !iswspace(lexer->lookahead)) {
+        if (len < (int)sizeof(buf) - 1) buf[len++] = (char)lexer->lookahead;
+        lexer->advance(lexer, false);
+      }
+
+      if (valid_symbols[INCLUDE_DO_OPENER_MARKER]) {
+        for (int i = 0; i < state->do_openers.count; i++) {
+          if (ends_with_ci(buf, len, state->do_openers.items[i])) {
+            lexer->result_symbol = INCLUDE_DO_OPENER_MARKER;
+            return true;
+          }
         }
       }
+
+      if (valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) {
+        for (int i = 0; i < state->class_openers.count; i++) {
+          if (ends_with_ci(buf, len, state->class_openers.items[i])) {
+            lexer->result_symbol = INCLUDE_CLASS_OPENER_MARKER;
+            return true;
+          }
+        }
+      }
+
+      return false;
     }
 
-    if (valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) {
-      for (int i = 0; i < state->class_openers.count; i++) {
-        if (ends_with_ci(buf, len, state->class_openers.items[i])) {
-          lexer->result_symbol = INCLUDE_CLASS_OPENER_MARKER;
+    // A {&NAME} macro alone on its line (a "pragma", e.g. prolint-nowarn
+    // annotations) is its own statement/class member, distinct from the same
+    // {&NAME} spelling used inline as a preprocessor_name (an accessor
+    // modifier, an EXTENT size, ...). Only what follows the closing '}'
+    // tells them apart, and a regex token cannot look ahead without
+    // consuming a trailing "// comment" into itself (losing it as its own
+    // comment node), so it is decided here instead: peek past '}', and
+    // commit only if nothing but optional whitespace and an optional
+    // "// comment" precede the newline.
+    if (valid_symbols[MACRO_STATEMENT] && lexer->lookahead == '&') {
+      lexer->advance(lexer, false); // consume '&'
+      bool saw_body = false;
+
+      while (!lexer->eof(lexer) && lexer->lookahead != '}' && lexer->lookahead != '\r' &&
+             lexer->lookahead != '\n') {
+        saw_body = true;
+        lexer->advance(lexer, false);
+      }
+
+      if (saw_body && lexer->lookahead == '}') {
+        lexer->advance(lexer, false); // consume '}'
+        lexer->mark_end(lexer); // the token itself is just "{&NAME}"
+
+        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+          lexer->advance(lexer, false);
+        }
+
+        if (lexer->lookahead == '/') {
+          lexer->advance(lexer, false);
+          if (lexer->lookahead == '/') {
+            while (!lexer->eof(lexer) && lexer->lookahead != '\r' && lexer->lookahead != '\n') {
+              lexer->advance(lexer, false);
+            }
+          } else {
+            return false; // a single '/' is not a comment, not this pattern
+          }
+        }
+
+        if (lexer->lookahead == '\r') lexer->advance(lexer, false);
+        if (lexer->lookahead == '\n') {
+          lexer->result_symbol = MACRO_STATEMENT;
           return true;
         }
       }
