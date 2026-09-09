@@ -1,6 +1,29 @@
 export default ({ kw }) => ({
   do_statement: ($) => seq($.__do_statement_prefix, $._terminator),
 
+  // Some projects have includes that expand to an unclosed "DO ... :" — the
+  // block is only closed by the file that invokes the include, with a bare
+  // END. There is no way to know that from the grammar alone without reading
+  // the include, so which paths do this is configured per project (see
+  // TREE_SITTER_ABL_INCLUDE_DO_OPENERS in AGENTS.md and src/scanner.c),
+  // rather than assumed. A pure grammar-level ambiguity here (any include
+  // could be this DO's opener, only a later END confirms it) forced GLR
+  // conflicts across every other place an include can appear (expressions,
+  // class members, CASE OTHERWISE...), so disambiguation happens in the
+  // external scanner instead: it recognizes a configured include path by
+  // name and emits a zero-width marker before the ordinary include grammar
+  // takes over, deterministically committing to this alternative with no
+  // grammar-level ambiguity at all.
+  implicit_do_statement: ($) =>
+    seq(
+      $._include_do_opener_marker,
+      $.include_file_reference,
+      // deopt: recurse
+      repeat($._statement),
+      $._end_keyword,
+      $._terminator,
+    ),
+
   __do_statement_prefix: ($) => seq(optional($._label), $.__do_body, $._end_keyword),
 
   // Widening the FOR branch counter makes record-phrase ambiguities global.

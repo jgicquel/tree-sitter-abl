@@ -1,7 +1,24 @@
 export default ({ kw }) => ({
-  class_definition: ($) => seq($.__class_prefix, $._terminator),
+  class_definition: ($) =>
+    choice(seq($.__class_prefix, $._terminator), seq($.__class_implicit_prefix, $._terminator)),
 
   __class_prefix: ($) => seq(optional($.__class_options), kw("CLASS"), $.__class_body),
+
+  // Some projects have an include that expands to "CLASS <name> ... :" plus
+  // some members — the class is only closed by the file that invokes the
+  // include, with END CLASS. Which path does this is configured per project
+  // (see TREE_SITTER_ABL_INCLUDE_CLASS_OPENERS in AGENTS.md and
+  // src/scanner.c); the external scanner recognizes a configured include
+  // path by name and emits a zero-width marker so the alternative below is
+  // deterministic rather than a grammar-level ambiguity (see do.js).
+  __class_implicit_prefix: ($) =>
+    seq(
+      $._include_class_opener_marker,
+      $.include_file_reference,
+      optional($.__class_definition_items),
+      $._end_keyword,
+      optional(kw("CLASS")),
+    ),
 
   __class_body: ($) =>
     seq(

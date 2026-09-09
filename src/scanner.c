@@ -1,5 +1,11 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS // MSVC/clang-cl: getenv() is fine for a read-only config lookup
+#endif
+
 #include <tree_sitter/parser.h>
 #include <wctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 enum TokenType {
   NAMEDOT,
@@ -9,15 +15,103 @@ enum TokenType {
   COLON,
   TERMINATOR_DOT,
   STRING_LITERAL,
-  BLOCK_COMMENT
+  BLOCK_COMMENT,
+  INCLUDE_DO_OPENER_MARKER,
+  INCLUDE_CLASS_OPENER_MARKER
 };
 
+// Case-insensitive suffix match, so a configured "foo/bar.i" matches
+// regardless of how deep the leading directory path goes, but a
+// differently-located include of the same base name does not.
+static bool ends_with_ci(const char *text, int text_len, const char *suffix) {
+  int suffix_len = 0;
+  while (suffix[suffix_len]) suffix_len++;
+  if (text_len < suffix_len) return false;
+
+  const char *start = text + (text_len - suffix_len);
+  for (int i = 0; i < suffix_len; i++) {
+    char a = start[i];
+    char b = suffix[i];
+    if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
+    if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+    if (a != b) return false;
+  }
+  return true;
+}
+
+typedef struct {
+  char **items;
+  int count;
+} StringList;
+
+// Splits a ';'-separated environment variable value into trimmed,
+// heap-allocated entries. An unset or empty variable yields an empty list.
+static StringList parse_string_list(const char *env_value) {
+  StringList list = {0};
+  if (!env_value || !*env_value) return list;
+
+  int capacity = 4;
+  list.items = malloc(sizeof(char *) * (size_t)capacity);
+
+  const char *start = env_value;
+  while (*start) {
+    const char *end = strchr(start, ';');
+    int len = end ? (int)(end - start) : (int)strlen(start);
+
+    while (len > 0 && (*start == ' ' || *start == '\t')) { start++; len--; }
+    while (len > 0 && (start[len - 1] == ' ' || start[len - 1] == '\t')) len--;
+
+    if (len > 0) {
+      if (list.count == capacity) {
+        capacity *= 2;
+        list.items = realloc(list.items, sizeof(char *) * (size_t)capacity);
+      }
+      char *item = malloc((size_t)len + 1);
+      memcpy(item, start, (size_t)len);
+      item[len] = '\0';
+      list.items[list.count++] = item;
+    }
+
+    if (!end) break;
+    start = end + 1;
+  }
+
+  return list;
+}
+
+static void free_string_list(StringList *list) {
+  for (int i = 0; i < list->count; i++) free(list->items[i]);
+  free(list->items);
+  list->items = NULL;
+  list->count = 0;
+}
+
+typedef struct {
+  // Include paths (matched by case-insensitive suffix) that this codebase
+  // knows expand to an unclosed DO/CLASS the invoking file itself closes.
+  // There is no way to know that from the grammar alone without reading the
+  // include, so it is configured per project rather than assumed: set
+  // TREE_SITTER_ABL_INCLUDE_DO_OPENERS / TREE_SITTER_ABL_INCLUDE_CLASS_OPENERS
+  // to a ';'-separated list before parsing (see AGENTS.md). Unset means
+  // neither list opens anything, and every include parses as a plain,
+  // self-contained reference.
+  StringList do_openers;
+  StringList class_openers;
+} ScannerState;
+
 void *tree_sitter_abl_external_scanner_create() {
-  return NULL;
+  ScannerState *state = malloc(sizeof(ScannerState));
+  state->do_openers = parse_string_list(getenv("TREE_SITTER_ABL_INCLUDE_DO_OPENERS"));
+  state->class_openers = parse_string_list(getenv("TREE_SITTER_ABL_INCLUDE_CLASS_OPENERS"));
+  return state;
 }
 
 void tree_sitter_abl_external_scanner_destroy(void *payload) {
-  (void)payload;
+  ScannerState *state = (ScannerState *)payload;
+  if (!state) return;
+  free_string_list(&state->do_openers);
+  free_string_list(&state->class_openers);
+  free(state);
 }
 
 unsigned int tree_sitter_abl_external_scanner_serialize(
@@ -44,7 +138,62 @@ bool tree_sitter_abl_external_scanner_scan(
   TSLexer *lexer,
   const bool *valid_symbols
 ) {
-  (void)payload;
+  ScannerState *state = (ScannerState *)payload;
+
+  // A configured include path (see ScannerState above) expands to an
+  // unclosed DO/CLASS that the invoking file closes with a bare END. There
+  // is no way to know that from the grammar alone without reading the
+  // include, so this is decided by name here and committed to a zero-width
+  // marker token ahead of the ordinary include grammar, deterministically,
+  // rather than leaving it as a grammar-level ambiguity (see grammar/
+  // statements do.js and class.js for why: it forced GLR conflicts across
+  // every other place an include can appear).
+  if (valid_symbols[INCLUDE_DO_OPENER_MARKER] || valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) {
+    // Extras (whitespace) are not yet skipped when the external scanner runs;
+    // skip them as extras (advance(..., true)) before looking for '{', or a
+    // merely-indented include (the common case, nested in a method body)
+    // would never be recognized.
+    while (!lexer->eof(lexer) && iswspace(lexer->lookahead)) {
+      lexer->advance(lexer, true);
+    }
+  }
+
+  if ((valid_symbols[INCLUDE_DO_OPENER_MARKER] || valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) &&
+      lexer->lookahead == '{') {
+    lexer->mark_end(lexer); // freeze a zero-width token right before '{'
+
+    char buf[128];
+    int len = 0;
+    lexer->advance(lexer, false); // consume '{' for lookahead only, past the frozen end
+
+    while (!lexer->eof(lexer) && lexer->lookahead != '}' && !iswspace(lexer->lookahead)) {
+      if (len < (int)sizeof(buf) - 1) buf[len++] = (char)lexer->lookahead;
+      lexer->advance(lexer, false);
+    }
+
+    if (valid_symbols[INCLUDE_DO_OPENER_MARKER]) {
+      for (int i = 0; i < state->do_openers.count; i++) {
+        if (ends_with_ci(buf, len, state->do_openers.items[i])) {
+          lexer->result_symbol = INCLUDE_DO_OPENER_MARKER;
+          return true;
+        }
+      }
+    }
+
+    if (valid_symbols[INCLUDE_CLASS_OPENER_MARKER]) {
+      for (int i = 0; i < state->class_openers.count; i++) {
+        if (ends_with_ci(buf, len, state->class_openers.items[i])) {
+          lexer->result_symbol = INCLUDE_CLASS_OPENER_MARKER;
+          return true;
+        }
+      }
+    }
+
+    // No match: the peeking above must not leak into the checks below, which
+    // assume they are looking at the original, unadvanced lexer position.
+    return false;
+  }
+
   if (valid_symbols[NAMEDOT] || valid_symbols[NAMECOLON] || valid_symbols[NAMEDOUBLECOLON] ||
       valid_symbols[NAMEPLUS] || valid_symbols[COLON] || valid_symbols[TERMINATOR_DOT]) {
     if (lexer->lookahead == '.') {

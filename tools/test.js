@@ -3,8 +3,15 @@ import { $ } from "bun";
 
 const [, , ...args] = Bun.argv;
 
+// Example configuration exercising implicit_do_statement/implicit CLASS in
+// the corpus (see AGENTS.md, Configuration) — real projects set their own.
 const proc = Bun.spawnSync({
   cmd: ["tree-sitter", "test", ...args],
+  env: {
+    ...Bun.env,
+    TREE_SITTER_ABL_INCLUDE_DO_OPENERS: "lib/foreachOE.i",
+    TREE_SITTER_ABL_INCLUDE_CLASS_OPENERS: "lib/singleton.i",
+  },
   stdout: "pipe",
   stderr: "pipe",
 });

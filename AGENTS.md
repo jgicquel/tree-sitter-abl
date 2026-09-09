@@ -56,6 +56,10 @@ Contributor-facing requirements are documented in [`CONTRIBUTING.md`](CONTRIBUTI
 
 Strongly prefer using these commands over using `tree-sitter` CLI binary as they pipeline helpful side-effects like returning `ACTION_COUNT`, `STATE_COUNT` and `LARGE_STATE_COUNT`.
 
+## Configuration
+
+- `TREE_SITTER_ABL_INCLUDE_DO_OPENERS` / `TREE_SITTER_ABL_INCLUDE_CLASS_OPENERS`: `;`-separated lists of include paths (matched by case-insensitive suffix) that your codebase knows expand to an unclosed `DO ... :` / `CLASS <name> ... :` closed by a bare `END`/`END CLASS` in the invoking file rather than in the include itself. There is no way to detect this from the grammar alone, so it is opt-in and unset by default — every include then parses as a plain, self-contained reference. Read once by the external scanner at parser creation (`src/scanner.c`); set before parsing, e.g. `TREE_SITTER_ABL_INCLUDE_DO_OPENERS="lib/loop.i;lib/eachrow.i" bun run parse file.p`.
+
 ## Notes
 
 - `bun` instead of `npm`.

@@ -40,6 +40,7 @@ export default ({ kw }) => ({
 
       // ABL Statements
       $.do_statement,
+      $.implicit_do_statement,
       $.input_statement,
       $.choose_statement,
       $.input_through_statement,

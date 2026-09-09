@@ -746,3 +746,40 @@ END CLASS.
           name: (identifier)
           type: (identifier)))
       (body))))
+
+================================================================================
+CLASS opened by an include, closed by END CLASS
+================================================================================
+
+{lib/singleton.i Some.SessionData IMPLEMENTS Some.IResetable}
+
+    METHOD PUBLIC VOID Bar():
+        RETURN.
+    END METHOD.
+
+END CLASS.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (class_definition
+    (include_file_reference
+      file: (include_file_path
+        (identifier))
+      argument: (include_argument
+        (qualified_name
+          left: (identifier)
+          right: (identifier)))
+      argument: (include_argument
+        (identifier))
+      argument: (include_argument
+        (qualified_name
+          left: (identifier)
+          right: (identifier))))
+    (method_definition
+      (access_modifier)
+      type: (identifier)
+      name: (identifier)
+      (parameters)
+      (body
+        (return_statement)))))

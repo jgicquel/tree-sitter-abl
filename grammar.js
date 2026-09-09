@@ -89,6 +89,8 @@ export default grammar({
     $._terminator_dot,
     $.string_literal,
     $.block_comment,
+    $._include_do_opener_marker,
+    $._include_class_opener_marker,
   ],
   extras: ($) => [/[\s\f\uFEFF\u2060\u200B]|\\\r?\n|~[ \t]*/, $.comment, $.argument_reference],
   word: ($) => $.identifier,
@@ -181,6 +183,14 @@ export default grammar({
     ],
     [$.__class_property_class_modifier, $.__event_type_modifier],
     [$.__class_property_class_modifier, $.__event_type_modifier, $.__variable_modifier],
+    // An include can expand to an unclosed DO/CLASS whose END belongs to the
+    // file that invokes it (implicit_do_statement, class_definition's implicit
+    // form). Until a matching END is seen, the same tokens also read as a
+    // complete include_statement on its own; only the END settles it.
+    // An include can expand to an unclosed DO whose END belongs to the file
+    // that invokes it (implicit_do_statement). Until a matching END is seen,
+    // the same tokens also read as a complete include_statement on their own;
+    // only the END settles it.
   ],
   inline: ($) => [
     $._object_access_plain_left,

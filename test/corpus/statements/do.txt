@@ -777,3 +777,38 @@ END.
         left: (identifier)
         operator: (assignment_operator)
         right: (number_literal)))))
+
+================================================================================
+DO block opened by an include, closed by a bare END
+================================================================================
+
+{lib/foreachOE.i Some.Enum.Type vItem in pCollection}
+    Handle(vItem, INPUT-OUTPUT pResult).
+END.
+
+--------------------------------------------------------------------------------
+
+(source_code
+  (implicit_do_statement
+    (include_file_reference
+      file: (include_file_path
+        (identifier))
+      argument: (include_argument
+        (qualified_name
+          left: (identifier)
+          right: (identifier)
+          right: (identifier)))
+      argument: (include_argument
+        (identifier))
+      argument: (include_argument
+        (identifier))
+      argument: (include_argument
+        (identifier)))
+    (expression_statement
+      (function_call
+        function: (identifier)
+        (arguments
+          (argument
+            name: (identifier))
+          (argument
+            name: (identifier)))))))
