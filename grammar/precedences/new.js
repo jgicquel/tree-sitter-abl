@@ -4,4 +4,5 @@ export default ($) => [
   // a bare qualified name, so the '<' after the name is not orphaned.
   // Example: NEW Progress.Collections.List<SomeType> ().
   [$._simple_type_name, $._identifier_or_qualified_name],
+  [$.__generic_type_prefix, $._identifier_or_qualified_name],
 ];
