@@ -5,7 +5,10 @@ export default ({ kw }) => ({
       choice(
         // Class constructor: NEW ClassName(args)
         seq(
-          field("type", choice($.scoped_name, $._identifier_or_qualified_name, $.string_literal)),
+          field(
+            "type",
+            choice($.scoped_name, $._identifier_or_qualified_name, $.string_literal, $.generic_type),
+          ),
           $.arguments,
         ),
         // Record buffer check: NEW record or NEW(record)

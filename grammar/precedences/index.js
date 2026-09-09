@@ -28,6 +28,7 @@ import grammar_raw_transfer from "./raw-transfer.js";
 import grammar_stream from "./stream.js";
 import grammar_subscribe from "./subscribe.js";
 import grammar_update from "./update.js";
+import grammar_new from "./new.js";
 
 // References: N/A (barrel for precedence groups).
 // Purpose: compose all precedence groups in a stable, readable order.
@@ -64,4 +65,5 @@ export default ($) => [
   ...grammar_stream($),
   ...grammar_subscribe($),
   ...grammar_update($),
+  ...grammar_new($),
 ];
