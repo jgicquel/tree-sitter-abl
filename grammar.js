@@ -491,6 +491,8 @@ export default grammar({
           $.qualified_name,
           alias(kw("PROCEDURE", { offset: 4 }), $.identifier),
           alias(kw("INTERFACE"), $.identifier),
+          alias(kw("BUFFER"), $.identifier),
+          alias(kw("TABLE-HANDLE"), $.identifier),
         ),
       _identifier_or_array_access: ($) => choice($._identifier_or_qualified_name, $.array_access),
       _identifier_or_access: ($) =>
